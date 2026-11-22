@@ -1,0 +1,17 @@
+{
+  "name": "Odak Not",
+  "short_name": "Odak Not",
+  "description": "DEHB dostu, kalem odaklı mühendislik not defteri — Gemini destekli.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#03010D",
+  "theme_color": "#03010D",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

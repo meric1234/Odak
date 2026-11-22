@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#03010D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Odak Not</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  ODAK NOT — ADHD dostu, kalem öncelikli mühendislik defteri
+  Token'lar #03010D (zemin) ve #472399 (aksan) renklerinden türetildi.
+  Kural: ekranda tek bir ana odak. Panel ve AI çekmecesi asla aynı anda açık kalmaz.
+*/
+:root{
+  --bg:#03010D; --surface:#0B071A; --surface-2:#120C29; --border:#24194A;
+  --accent:#472399; --accent-h:#5E35B8; --glow:#7B52DB;
+  --text:#F2EFFB; --text-2:#9E95B8;
+  --radius:14px; --sb:280px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font:15px/1.5 Inter,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:10px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+input,select,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%}
+svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Yerleşim ---------- */
+#app{display:flex;height:100%}
+#side{width:var(--sb);flex:none;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;transition:margin .22s ease}
+#app.focus #side{margin-left:calc(-1 * var(--sb))}
+#main{flex:1;position:relative;display:flex;flex-direction:column}
+
+/* ---------- Sol panel ---------- */
+.side-h{display:flex;align-items:center;gap:8px;padding:18px 16px 10px}
+.side-h b{font-weight:600;letter-spacing:.2px;flex:1}
+.sec{padding:6px 10px;overflow:auto}
+.lbl{font-size:13px;color:var(--text-2);padding:10px 8px 6px;display:flex;justify-content:space-between;align-items:center}
+.item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;min-height:44px;color:var(--text-2)}
+.item:hover{background:var(--surface-2)}
+.item.on{background:var(--surface-2);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
+.item small{margin-left:auto;font-size:13px;opacity:.7}
+.item .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#notes{flex:1}
+.addrow{display:none;gap:6px;padding:4px 8px 8px}
+.addrow.on{display:flex}
+.ico{width:44px;height:44px;display:grid;place-items:center;color:var(--text-2);flex:none}
+.ico:hover{color:var(--text);background:var(--surface-2)}
+.side-f{border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:4px}
+
+/* ---------- Üst şerit ---------- */
+#top{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);z-index:2}
+#title{flex:1;background:transparent;border:0;font-size:20px;font-weight:600;padding:6px 8px;user-select:text;-webkit-user-select:text}
+#title:hover{background:var(--surface)}
+#saved{font-size:13px;color:var(--text-2);padding:0 8px;white-space:nowrap}
+
+/* ---------- Tuval ---------- */
+#stage{flex:1;position:relative;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:crosshair}
+#empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--text-2);pointer-events:none;text-align:center;padding:24px}
+#empty.off{display:none}
+
+/* ---------- Yüzen araç çubuğu ---------- */
+#tools{position:absolute;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);
+  display:flex;align-items:center;gap:2px;padding:6px;background:rgba(11,7,26,.92);
+  border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  backdrop-filter:blur(8px);z-index:3;max-width:calc(100% - 24px);overflow-x:auto}
+#tools .ico.on{color:var(--text);background:var(--accent)}
+.sep{width:1px;height:26px;background:var(--border);margin:0 4px;flex:none}
+.sw{width:44px;height:44px;display:grid;place-items:center;flex:none}
+.sw i{width:20px;height:20px;border-radius:50%;display:block;box-shadow:0 0 0 2px var(--surface)}
+.sw.on i{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--glow)}
+.wd i{background:var(--text-2);border-radius:50%;display:block}
+.wd.on i{background:var(--text)}
+.ai-btn{display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;background:var(--accent);color:var(--text);font-weight:500;flex:none}
+.ai-btn:hover{background:var(--accent-h)}
+
+/* ---------- AI çekmecesi ---------- */
+#ai{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);
+  border-left:1px solid var(--border);transform:translateX(105%);transition:transform .22s ease;
+  z-index:5;display:flex;flex-direction:column}
+#ai.on{transform:none}
+.ai-h{display:flex;align-items:center;padding:14px 12px 10px 18px;border-bottom:1px solid var(--border)}
+.ai-h b{flex:1;font-weight:600}
+.ai-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 16px}
+.act{background:var(--surface-2);border:1px solid var(--border);padding:12px;text-align:left;min-height:64px}
+.act:hover{border-color:var(--accent-h)}
+.act b{display:block;font-weight:500;font-size:14px}
+.act span{font-size:13px;color:var(--text-2)}
+.act.on{border-color:var(--glow);background:#1a1138}
+#ask{display:flex;gap:8px;padding:0 16px 12px}
+#out{flex:1;overflow:auto;padding:6px 18px 24px;user-select:text;-webkit-user-select:text;line-height:1.65}
+#out h3,#out h4{margin:18px 0 6px;font-size:16px}
+#out code{background:var(--surface-2);padding:1px 5px;border-radius:6px}
+#out .katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+#out .hint{color:var(--text-2)}
+.copy{margin:0 16px 14px;padding:10px;border:1px solid var(--border);color:var(--text-2)}
+.dots{display:inline-flex;gap:5px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--glow);animation:p 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- Ayarlar diyaloğu ---------- */
+#dlg{position:fixed;inset:0;background:rgba(3,1,13,.7);display:none;place-items:center;z-index:10;padding:16px}
+#dlg.on{display:grid}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:min(440px,100%);display:grid;gap:12px}
+.card h2{margin:0;font-size:18px}
+.card p{margin:0;color:var(--text-2);font-size:14px}
+.row{display:flex;gap:8px;justify-content:flex-end}
+.btn{padding:10px 16px;min-height:44px;border:1px solid var(--border)}
+.btn.pri{background:var(--accent);border-color:var(--accent)}
+.chk{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-2)}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+
+@media (max-width:760px){
+  #side{position:absolute;z-index:6;height:100%;box-shadow:10px 0 30px rgba(0,0,0,.5)}
+  #saved{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SOL PANEL -->
+  <aside id="side" aria-label="Klasörler ve notlar">
+    <div class="side-h"><b>Odak Not</b>
+      <button class="ico" id="hideSide" title="Paneli kapat"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    </div>
+    <div class="sec">
+      <div class="lbl">Dersler <button class="ico" id="addFolderBtn" title="Ders ekle" style="width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+      <div class="addrow" id="folderRow"><input id="folderIn" placeholder="Ders adı (ör. Diferansiyel Denklemler)"><button class="btn pri" id="folderOk">Ekle</button></div>
+      <div id="folders"></div>
+    </div>
+    <div class="sec" id="notes"></div>
+    <div class="side-f">
+      <button class="item" id="newNote" style="color:var(--text)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Yeni not</button>
+      <button class="ico" id="openSettings" title="Ayarlar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- ANA ALAN -->
+  <main id="main">
+    <div id="top">
+      <button class="ico" id="toggleSide" title="Paneli aç/kapat (odak modu)"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <input id="title" aria-label="Not başlığı" value="Adsız not">
+      <span id="saved">Kaydedildi</span>
+      <button class="ico" id="bgBtn" title="Arka plan: ızgara / nokta / düz"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16"/></svg></button>
+    </div>
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="empty">Kalemle yazmaya başla.<br>Parmakla kaydır, iki parmakla yukarı-aşağı gez.</div>
+
+      <div id="tools" role="toolbar" aria-label="Kalem araçları">
+        <button class="ico on" id="tPen" title="Kalem (P)"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button>
+        <button class="ico" id="tHl" title="Fosforlu (H)"><svg viewBox="0 0 24 24"><path d="M9 15l-3 5h6M9 15l8-8 3 3-8 8zM14 6l4 4"/></svg></button>
+        <button class="ico" id="tEr" title="Silgi (E)"><svg viewBox="0 0 24 24"><path d="M8 20h12M4 15l9-9 6 6-7 7H8z"/></svg></button>
+        <span class="sep"></span>
+        <span id="swatches" style="display:flex"></span>
+        <span class="sep"></span>
+        <span id="widths" style="display:flex"></span>
+        <span class="sep"></span>
+        <button class="ico" id="undo" title="Geri al (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+        <button class="ico" id="redo" title="Yinele (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+        <span class="sep"></span>
+        <button class="ai-btn" id="aiOpen" title="Gemini ile çalış"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Asistan</button>
+      </div>
+
+      <!-- AI ÇEKMECESİ -->
+      <section id="ai" aria-label="Gemini asistanı">
+        <div class="ai-h"><b>Asistan</b><button class="ico" id="aiClose" title="Kapat"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+        <div class="ai-acts" id="acts"></div>
+        <form id="ask"><input id="askIn" placeholder="Bu sayfa hakkında soru sor…"><button class="btn pri" type="submit">Sor</button></form>
+        <div id="out"><p class="hint">Sayfadaki el yazını Gemini'ye görüntü olarak gönderir. Bir işlem seç — sonuç burada, LaTeX ile görünür.</p></div>
+        <button class="copy" id="copyOut">Sonucu kopyala</button>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- AYARLAR -->
+<div id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+  <form class="card" id="setForm">
+    <h2 id="dlgT">Ayarlar</h2>
+    <p>Gemini API anahtarın yalnızca bu cihazda saklanır ve doğrudan Google'a gönderilir.</p>
+    <input id="keyIn" type="password" placeholder="Gemini API anahtarı" autocomplete="off">
+    <select id="modelIn">
+      <option value="gemini-3.8-flash">gemini-3.8-flash (önerilen)</option>
+      <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (hızlı, ucuz)</option>
+      <option value="gemini-flash-latest">gemini-flash-latest (her zaman en yeni)</option>
+    </select>
+    <input id="modelCustom" placeholder="veya özel model adı (isteğe bağlı)">
+    <label class="chk"><input type="checkbox" id="penOnly"> Sadece kalemle çiz (avuç içi reddi)</label>
+    <p id="testMsg" style="min-height:1.5em"></p>
+    <div class="row"><button type="button" class="btn" id="testBtn" style="margin-right:auto">Bağlantıyı test et</button><button type="button" class="btn" id="setCancel">Vazgeç</button><button class="btn pri">Kaydet</button></div>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+{
+/* ================= Depolama (IndexedDB, localStorage yedekli) ================= */
+const DB = (() => {
+  let dbp;
+  try {
+    dbp = new Promise((res, rej) => {
+      const r = indexedDB.open('odak-not', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  } catch (e) { dbp = Promise.reject(e); }
+  const tx = (mode, fn) => dbp.then(db => new Promise((res, rej) => {
+    const t = db.transaction('kv', mode), s = t.objectStore('kv'), q = fn(s);
+    t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error);
+  }));
+  return {
+    get: k => tx('readonly', s => s.get(k)).catch(() => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }),
+    set: (k, v) => tx('readwrite', s => s.put(v, k)).catch(() => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }),
+    del: k => tx('readwrite', s => s.delete(k)).catch(() => { try { localStorage.removeItem(k); } catch {} })
+  };
+})();
+const LS = {
+  get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const $ = id => document.getElementById(id);
+
+/* ================= Durum ================= */
+const COLORS = ['#F2EFFB', '#9B7BFF', '#5FD3C6', '#FFB86B'];   // beyaz, mor, turkuaz, amber — az ve ayırt edilebilir
+const WIDTHS = [1.6, 2.8, 5];
+const HL_COLOR = 'rgba(123,82,219,0.35)';
+const st = {
+  index: { folders: [], notes: [] },   // notes: {id, folderId, title, updated}
+  folderId: null, noteId: null,
+  strokes: [], bg: 'grid', scrollY: 0,
+  tool: 'pen', color: COLORS[0], width: WIDTHS[1],
+  undo: [], redo: [],
+  settings: LS.get('on-settings', { key: '', model: 'gemini-3.8-flash', custom: '', penOnly: false }),
+  penSeen: false
+};
+
+/* ================= Tuval ================= */
+const cv = $('cv'), ctx = cv.getContext('2d', { desynchronized: true });
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 3);
+  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  redraw();
+}
+new ResizeObserver(resize).observe(cv);
+
+function drawBg(c, w, h, oy) {
+  c.fillStyle = '#03010D'; c.fillRect(0, 0, w, h);
+  if (st.bg === 'plain') return;
+  const g = 32, off = -(oy % g);
+  if (st.bg === 'grid') {
+    c.strokeStyle = 'rgba(36,25,74,0.75)'; c.lineWidth = 1; c.beginPath();
+    for (let x = g; x < w; x += g) { c.moveTo(x + .5, 0); c.lineTo(x + .5, h); }
+    for (let y = off; y < h; y += g) { c.moveTo(0, y + .5); c.lineTo(w, y + .5); }
+    c.stroke();
+  } else {
+    c.fillStyle = 'rgba(94,53,184,0.45)';
+    for (let x = g; x < w; x += g) for (let y = off; y < h; y += g) { c.beginPath(); c.arc(x, y, 1.2, 0, 6.283); c.fill(); }
+  }
+}
+// Basınca duyarlı, orta-nokta yumuşatmalı çizgi
+function drawStroke(c, s, oy, from = 0) {
+  const p = s.pts; if (!p.length) return;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = s.hl ? HL_COLOR : s.color;
+  if (p.length === 1) {
+    c.fillStyle = c.strokeStyle; c.beginPath();
+    c.arc(p[0][0], p[0][1] - oy, s.w * (0.5 + p[0][2]) / 2, 0, 6.283); c.fill(); return;
+  }
+  if (s.hl) { // fosforlu: sabit genişlik, tek path (üst üste binince koyulaşmasın)
+    if (from > 0) return;
+    c.lineWidth = s.w; c.lineCap = 'butt'; c.beginPath(); c.moveTo(p[0][0], p[0][1] - oy);
+    for (let i = 1; i < p.length; i++) c.lineTo(p[i][0], p[i][1] - oy);
+    c.stroke(); return;
+  }
+  for (let i = Math.max(1, from); i < p.length; i++) {
+    const a = p[i - 1], b = p[i], z = i > 1 ? p[i - 2] : a;
+    const m1x = (z[0] + a[0]) / 2, m1y = (z[1] + a[1]) / 2, m2x = (a[0] + b[0]) / 2, m2y = (a[1] + b[1]) / 2;
+    c.lineWidth = s.w * (0.45 + 0.9 * ((a[2] + b[2]) / 2));
+    c.beginPath(); c.moveTo(m1x, m1y - oy); c.quadraticCurveTo(a[0], a[1] - oy, m2x, m2y - oy); c.stroke();
+  }
+}
+function redraw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawBg(ctx, W, H, st.scrollY);
+  const top = st.scrollY - 20, bot = st.scrollY + H + 20;
+  for (const s of st.strokes) if (s.maxY >= top && s.minY <= bot) drawStroke(ctx, s, st.scrollY);
+  if (cur) drawStroke(ctx, cur, st.scrollY);
+  $('empty').classList.toggle('off', st.strokes.length > 0 || !!cur);
+}
+
+/* ================= Girdi: kalem / parmak / silgi ================= */
+let cur = null, panning = null, erasing = false, eraseSnap = null;
+const touches = new Map();
+const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top + st.scrollY]; };
+const pressure = e => (e.pointerType === 'pen' ? (e.pressure || 0.5) : 0.5);
+const round = v => Math.round(v * 10) / 10;
+
+function bounds(s) { let a = Infinity, b = -Infinity; for (const p of s.pts) { if (p[1] < a) a = p[1]; if (p[1] > b) b = p[1]; } s.minY = a - s.w; s.maxY = b + s.w; }
+function pushUndo() { st.undo.push(st.strokes.slice()); if (st.undo.length > 100) st.undo.shift(); st.redo = []; syncUndo(); }
+
+function eraseAt(x, y) {
+  const r = 12 + st.width * 2; let hit = false;
+  st.strokes = st.strokes.filter(s => {
+    if (y < s.minY - r || y > s.maxY + r) return true;
+    for (const p of s.pts) if ((p[0] - x) ** 2 + (p[1] - y) ** 2 < r * r) { hit = true; return false; }
+    return true;
+  });
+  if (hit) redraw();
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'pen') st.penSeen = true;
+  const fingerPans = e.pointerType === 'touch' && (st.settings.penOnly || st.penSeen);
+  touches.set(e.pointerId, e.clientY);
+  if (fingerPans || touches.size > 1) {           // parmak = kaydırma (avuç içi reddi)
+    if (cur) { cur = null; redraw(); }
+    panning = { y: e.clientY, s: st.scrollY, id: e.pointerId }; return;
+  }
+  if (e.button === 2 || e.buttons === 32 || st.tool === 'erase') { // kalemin silgi ucu da çalışır
+    cv.setPointerCapture(e.pointerId); erasing = true; eraseSnap = st.strokes.slice();
+    const [x, y] = pos(e); eraseAt(x, y); return;
+  }
+  cv.setPointerCapture(e.pointerId);
+  const [x, y] = pos(e);
+  cur = { id: uid(), color: st.color, w: st.tool === 'hl' ? 18 : st.width, hl: st.tool === 'hl', pts: [[round(x), round(y), pressure(e)]] };
+  redraw();
+});
+cv.addEventListener('pointermove', e => {
+  if (panning) {
+    if (e.pointerId !== panning.id) return;
+    st.scrollY = Math.max(0, panning.s - (e.clientY - panning.y)); redraw(); return;
+  }
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  if (erasing) { for (const ev of evs) { const [x, y] = pos(ev); eraseAt(x, y); } return; }
+  if (!cur) return;
+  const from = cur.pts.length;
+  for (const ev of evs) {
+    const [x, y] = pos(ev), l = cur.pts[cur.pts.length - 1];
+    if ((x - l[0]) ** 2 + (y - l[1]) ** 2 < 0.6) continue;
+    cur.pts.push([round(x), round(y), pressure(ev)]);
+  }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (cur.hl) redraw(); else drawStroke(ctx, cur, st.scrollY, from); // artımlı çizim = düşük gecikme
+});
+function endPointer(e) {
+  touches.delete(e.pointerId);
+  if (panning && e.pointerId === panning.id) { panning = null; return; }
+  if (erasing) {
+    erasing = false;
+    if (eraseSnap && eraseSnap.length !== st.strokes.length) { st.undo.push(eraseSnap); st.redo = []; syncUndo(); scheduleSave(); }
+    eraseSnap = null; return;
+  }
+  if (!cur) return;
+  bounds(cur); pushUndo(); st.strokes.push(cur); cur = null; redraw(); scheduleSave();
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('wheel', e => { e.preventDefault(); st.scrollY = Math.max(0, st.scrollY + e.deltaY); redraw(); }, { passive: false });
+
+/* ================= Araç çubuğu ================= */
+$('swatches').innerHTML = COLORS.map((c, i) => `<button class="sw${i ? '' : ' on'}" data-c="${c}" title="Renk"><i style="background:${c}"></i></button>`).join('');
+$('widths').innerHTML = WIDTHS.map((w, i) => `<button class="sw wd${i === 1 ? ' on' : ''}" data-w="${w}" title="Kalınlık"><i style="width:${4 + i * 4}px;height:${4 + i * 4}px"></i></button>`).join('');
+function setTool(t) {
+  st.tool = t;
+  for (const [id, n] of [['tPen', 'pen'], ['tHl', 'hl'], ['tEr', 'erase']]) $(id).classList.toggle('on', t === n);
+  cv.style.cursor = t === 'erase' ? 'cell' : 'crosshair';
+}
+$('tPen').onclick = () => setTool('pen'); $('tHl').onclick = () => setTool('hl'); $('tEr').onclick = () => setTool('erase');
+$('swatches').onclick = e => { const b = e.target.closest('[data-c]'); if (!b) return; st.color = b.dataset.c;
+  document.querySelectorAll('#swatches .sw').forEach(x => x.classList.toggle('on', x === b)); if (st.tool === 'erase') setTool('pen'); };
+$('widths').onclick = e => { const b = e.target.closest('[data-w]'); if (!b) return; st.width = +b.dataset.w;
+  document.querySelectorAll('#widths .sw').forEach(x => x.classList.toggle('on', x === b)); };
+function syncUndo() { $('undo').style.opacity = st.undo.length ? 1 : .35; $('redo').style.opacity = st.redo.length ? 1 : .35; }
+function undo() { if (!st.undo.length) return; st.redo.push(st.strokes); st.strokes = st.undo.pop(); syncUndo(); redraw(); scheduleSave(); }
+function redo() { if (!st.redo.length) return; st.undo.push(st.strokes); st.strokes = st.redo.pop(); syncUndo(); redraw(); scheduleSave(); }
+$('undo').onclick = undo; $('redo').onclick = redo;
+const BGS = ['grid', 'dots', 'plain'];
+$('bgBtn').onclick = () => { st.bg = BGS[(BGS.indexOf(st.bg) + 1) % 3]; redraw(); scheduleSave(); };
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea,select')) return;
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); }
+  else if (k === 'p') setTool('pen'); else if (k === 'h') setTool('hl'); else if (k === 'e') setTool('erase');
+  else if (k === 'escape') { closeAI(); $('dlg').classList.remove('on'); }
+});
+
+/* ================= Panel / odak modu ================= */
+const app = $('app');
+const narrow = () => matchMedia('(max-width:760px)').matches;
+function setFocus(on) { app.classList.toggle('focus', on); LS.set('on-focus', on); }
+$('toggleSide').onclick = () => { setFocus(!app.classList.contains('focus')); if (!app.classList.contains('focus')) closeAI(); };
+$('hideSide').onclick = () => setFocus(true);
+
+/* ================= Klasörler & notlar ================= */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDate = t => new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+function renderSide() {
+  const { folders, notes } = st.index;
+  $('folders').innerHTML = folders.map(f => `<button class="item${f.id === st.folderId ? ' on' : ''}" data-f="${f.id}">
+    <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <span class="t">${esc(f.name)}</span><small>${notes.filter(n => n.folderId === f.id).length}</small></button>`).join('');
+  const list = notes.filter(n => n.folderId === st.folderId).sort((a, b) => b.updated - a.updated);
+  $('notes').innerHTML = `<div class="lbl">Notlar</div>` + (list.length ? list.map(n => `<button class="item${n.id === st.noteId ? ' on' : ''}" data-n="${n.id}">
+    <span class="t">${esc(n.title || 'Adsız not')}</span><small>${fmtDate(n.updated)}</small></button>`).join('')
+    : `<p class="lbl" style="display:block">Bu derste henüz not yok.</p>`);
+}
+$('folders').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; st.folderId = b.dataset.f; LS.set('on-folder', st.folderId); renderSide(); };
+$('notes').onclick = async e => { const b = e.target.closest('[data-n]'); if (!b) return; await openNote(b.dataset.n); if (narrow()) setFocus(true); };
+$('addFolderBtn').onclick = () => { $('folderRow').classList.toggle('on'); $('folderIn').focus(); };
+async function addFolder() {
+  const name = $('folderIn').value.trim(); if (!name) return;
+  const f = { id: uid(), name }; st.index.folders.push(f); st.folderId = f.id;
+  $('folderIn').value = ''; $('folderRow').classList.remove('on');
+  await DB.set('index', st.index); renderSide();
+}
+$('folderOk').onclick = addFolder;
+$('folderIn').onkeydown = e => { if (e.key === 'Enter') addFolder(); };
+$('newNote').onclick = () => newNote();
+async function newNote() {
+  await saveNow();
+  const n = { id: uid(), folderId: st.folderId, title: 'Adsız not', updated: Date.now() };
+  st.index.notes.push(n); await DB.set('index', st.index);
+  await DB.set('note:' + n.id, { strokes: [], bg: st.bg });
+  await openNote(n.id); $('title').select();
+}
+async function openNote(id) {
+  await saveNow();
+  const meta = st.index.notes.find(n => n.id === id); if (!meta) return;
+  const d = (await DB.get('note:' + id)) || { strokes: [], bg: 'grid' };
+  st.noteId = id; st.strokes = d.strokes || []; st.bg = d.bg || 'grid'; st.scrollY = 0; st.undo = []; st.redo = [];
+  st.strokes.forEach(s => { if (s.minY == null) bounds(s); });
+  $('title').value = meta.title; LS.set('on-note', id); syncUndo(); renderSide(); redraw();
+}
+$('title').oninput = () => { const n = st.index.notes.find(n => n.id === st.noteId); if (n) { n.title = $('title').value; scheduleSave(); } };
+$('title').onkeydown = e => { if (e.key === 'Enter') $('title').blur(); };
+
+let saveT = null, dirty = false;
+function scheduleSave() { dirty = true; $('saved').textContent = 'Kaydediliyor…'; clearTimeout(saveT); saveT = setTimeout(saveNow, 700); }
+async function saveNow() {
+  clearTimeout(saveT); if (!dirty || !st.noteId) return; dirty = false;
+  const n = st.index.notes.find(n => n.id === st.noteId); if (n) n.updated = Date.now();
+  await DB.set('note:' + st.noteId, { strokes: st.strokes, bg: st.bg });
+  await DB.set('index', st.index);
+  $('saved').textContent = 'Kaydedildi'; renderSide();
+}
+addEventListener('pagehide', saveNow);
+document.addEventListener('visibilitychange', () => document.hidden && saveNow());
+
+/* ================= Ayarlar ================= */
+function openSettings() {
+  const s = st.settings; $('keyIn').value = s.key; $('testMsg').textContent = '';
+  if (![...$('modelIn').options].some(o => o.value === s.model)) $('modelIn').add(new Option(s.model + ' (otomatik seçildi)', s.model));
+  $('modelIn').value = s.model; $('modelCustom').value = s.custom; $('penOnly').checked = s.penOnly;
+  $('dlg').classList.add('on'); setTimeout(() => $('keyIn').focus(), 50);
+}
+$('openSettings').onclick = openSettings;
+$('setCancel').onclick = () => $('dlg').classList.remove('on');
+const readForm = () => ({ key: $('keyIn').value.replace(/\s+/g, ''), model: $('modelIn').value, custom: $('modelCustom').value.trim(), penOnly: $('penOnly').checked });
+$('setForm').onsubmit = e => {
+  e.preventDefault();
+  st.settings = readForm(); LS.set('on-settings', st.settings); $('dlg').classList.remove('on');
+};
+$('testBtn').onclick = async () => {
+  const s = readForm(), m = $('testMsg');
+  if (!s.key) { m.textContent = 'Önce anahtarı yapıştır.'; return; }
+  m.textContent = 'Deneniyor…';
+  try {
+    const used = await gemini(s, [{ text: 'Sadece "tamam" yaz.' }]);
+    st.settings = s; LS.set('on-settings', s);
+    m.textContent = `Bağlantı çalışıyor ✓ (model: ${used.model}). Ayarlar kaydedildi.`;
+  } catch (err) { m.textContent = err.message; }
+};
+
+/* ================= Gemini ================= */
+const SYS = `Sen mühendislik ve sayısal dersler için sabırlı bir öğretmen asistanısın. Kullanıcı DEHB'li bir öğrenci.
+Kurallar: Türkçe yaz. Kısa paragraflar, numaralı adımlar. Her adımda tek fikir. Tüm matematiği LaTeX ile yaz:
+satır içi $...$, blok $$...$$. Gereksiz giriş/kapanış cümlesi yazma. Emin olmadığın el yazısı kısımları [?] ile işaretle.`;
+const ACTIONS = [
+  { id: 'ocr', t: 'Dijitale çevir', d: 'El yazısı → metin + LaTeX', p: 'Bu el yazısı notu birebir dijital metne çevir. Başlıkları ### ile, formülleri LaTeX ile yaz. Yorum ekleme.' },
+  { id: 'check', t: 'Çözümü kontrol et', d: 'Hatalı adımı bul', p: 'Bu sayfadaki çözümü adım adım kontrol et. İlk hatalı adımı açıkça belirt, nedenini 1-2 cümleyle açıkla, doğrusunu göster. Hata yoksa "Çözüm doğru" de ve kısa doğrulama ver.' },
+  { id: 'steps', t: 'Adım adım çöz', d: 'Soruyu baştan çöz', p: 'Sayfadaki soruyu/problemi tespit et ve numaralı, küçük adımlarla çöz. En sonda sonucu kutu içinde ($\\boxed{}$) ver.' },
+  { id: 'sum', t: 'Özet + kavramlar', d: '5 madde, ezber kartı', p: 'Bu sayfayı en fazla 5 maddelik bir özet ve altında "Anahtar formüller" listesi olarak çıkar. Sonuna kendimi test etmem için 2 kısa soru ekle (cevapları gizlemeden en altta ver).' }
+];
+$('acts').innerHTML = ACTIONS.map(a => `<button class="act" data-a="${a.id}"><b>${a.t}</b><span>${a.d}</span></button>`).join('');
+function openAI() { $('ai').classList.add('on'); if (narrow()) setFocus(true); }
+function closeAI() { $('ai').classList.remove('on'); }
+$('aiOpen').onclick = () => $('ai').classList.contains('on') ? closeAI() : openAI();
+$('aiClose').onclick = closeAI;
+
+// Notun çizgi bölgesini kırpıp PNG'ye çevir
+function exportPNG() {
+  if (!st.strokes.length) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of st.strokes) for (const p of s.pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const pad = 24; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
+  const w = x1 - x0, h = y1 - y0, sc = Math.min(2, 2400 / Math.max(w, h));
+  const c = document.createElement('canvas'); c.width = Math.ceil(w * sc); c.height = Math.ceil(h * sc);
+  const g = c.getContext('2d'); g.setTransform(sc, 0, 0, sc, -x0 * sc, 0);
+  g.fillStyle = '#03010D'; g.fillRect(x0, 0, w, h);
+  for (const s of st.strokes) { g.save(); g.translate(0, -y0); drawStroke(g, s, 0); g.restore(); }
+  return c.toDataURL('image/png').split(',')[1];
+}
+// Eski kayıtlarda kalan, artık yeni anahtarlara kapalı 2.x modellerini taşı
+if (/^gemini-(1|2)\./.test(st.settings.model)) { st.settings.model = 'gemini-3.8-flash'; LS.set('on-settings', st.settings); }
+if (/^gemini-(1|2)\./.test(st.settings.custom || '')) { st.settings.custom = ''; LS.set('on-settings', st.settings); }
+
+const API = 'https://generativelanguage.googleapis.com/v1beta/';
+function friendly(status, msg) {
+  if (status === 400 && /API key|API_KEY/i.test(msg)) return 'API anahtarı geçersiz görünüyor. AI Studio\'dan kopyalarken eksik kalmış olabilir.';
+  if (status === 403) return 'Anahtarın bu API\'ye izni yok. AI Studio\'da yeni bir anahtar oluşturmayı dene.';
+  if (status === 429) return 'Ücretsiz kota doldu ya da çok hızlı istek gitti. Bir dakika bekleyip tekrar dene.';
+  if (status >= 500) return 'Google tarafında geçici bir sorun var. Biraz sonra tekrar dene.';
+  return `Hata (${status}): ${msg}`;
+}
+// İstek hiç gidemediyse nedenini tahmin et
+function diagnose() {
+  let framed = false; try { framed = window.self !== window.top; } catch { framed = true; }
+  if (!navigator.onLine) return 'Cihaz çevrimdışı görünüyor. İnternete bağlanıp tekrar dene.';
+  if (framed) return 'Uygulama bir önizleme penceresinin içinde açılmış; önizlemeler internete çıkışı engeller. Dosyayı indirip Chrome\'da kendi sekmesinde aç (ya da Netlify Drop ile yayınla).';
+  if (/^(file|content):$/.test(location.protocol)) return 'Dosya doğrudan cihazdan açılmış ve tarayıcı bu durumda isteği engelliyor. En kolay çözüm: app.netlify.com/drop adresine dosyayı sürükleyip verdiği https linkinden aç.';
+  return 'Google\'a ulaşılamadı. Reklam engelleyici, VPN veya okul/iş ağı generativelanguage.googleapis.com adresini engelliyor olabilir; başka bir ağda ya da gizli sekmede dene.';
+}
+// Anahtarın erişebildiği, görüntü okuyabilen bir flash modeli bul
+async function pickModel(key) {
+  const r = await fetch(API + 'models?pageSize=200', { headers: { 'x-goog-api-key': key } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendly(r.status, j.error?.message || ''));
+  const names = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map(m => m.name.replace('models/', ''))
+    .filter(n => /^gemini-/.test(n) && !/(tts|image|live|audio|embedding|robotics|computer)/.test(n));
+  const score = n => (/flash/.test(n) ? 1000 : 0) - (/lite/.test(n) ? 100 : 0) - (/preview|exp/.test(n) ? 50 : 0) + (parseFloat(n.slice(7)) || 0);
+  names.sort((a, b) => score(b) - score(a));
+  if (!names.length) throw new Error('Bu anahtarla kullanılabilen bir Gemini modeli bulunamadı.');
+  return names[0];
+}
+async function gemini(s, parts) {
+  if (location.protocol === 'file:') console.warn('Dosyadan açıldı; sorun olursa bir sunucudan açın.');
+  let viaQuery = false;   // başlıkla olmazsa anahtarı adres parametresiyle dene
+  const body = JSON.stringify({ systemInstruction: { parts: [{ text: SYS }] }, contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2 } });
+  const call = model => fetch(`${API}models/${encodeURIComponent(model)}:generateContent` + (viaQuery ? `?key=${encodeURIComponent(s.key)}` : ''), {
+    method: 'POST',
+    headers: viaQuery ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': s.key },
+    body
+  });
+  let model = s.custom || s.model, r;
+  try { r = await call(model); }
+  catch {
+    viaQuery = true;
+    try { r = await call(model); } catch { throw new Error(diagnose()); }
+  }
+  if (r.status === 404) {            // model kapalı/yok → otomatik yedek
+    model = await pickModel(s.key);
+    r = await call(model);
+    if (r.ok && !s.custom) { s.model = model; LS.set('on-settings', s); }
+  }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(friendly(r.status, j.error?.message || ''));
+  const cand = j.candidates?.[0];
+  if (!cand) throw new Error('Yanıt engellendi ya da boş döndü' + (j.promptFeedback?.blockReason ? ` (${j.promptFeedback.blockReason})` : '') + '.');
+  return { model, text: (cand.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('').trim() };
+}
+let lastText = '';
+async function runAI(prompt, btn) {
+  const out = $('out');
+  if (!st.settings.key) { out.innerHTML = `<p class="hint">Önce Ayarlar'dan Gemini API anahtarını ekle.</p>`; openSettings(); return; }
+  await saveNow();
+  const img = exportPNG();
+  if (!img) { out.innerHTML = `<p class="hint">Sayfa boş — önce bir şeyler yaz.</p>`; return; }
+  document.querySelectorAll('.act').forEach(b => b.classList.toggle('on', b === btn));
+  out.innerHTML = `<p class="hint"><span class="dots"><i></i><i></i><i></i></span> Gemini sayfayı okuyor…</p>`;
+  try {
+    const res = await gemini(st.settings, [{ inline_data: { mime_type: 'image/png', data: img } }, { text: `Not başlığı: ${$('title').value}\n\n${prompt}` }]);
+    lastText = res.text || 'Boş yanıt döndü.';
+    out.innerHTML = md(lastText);
+    if (window.renderMathInElement) renderMathInElement(out, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }, { left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false });
+  } catch (err) {
+    out.innerHTML = `<p class="hint">Bir sorun oldu: ${esc(err.message)}</p>`;
+  }
+}
+// Hafif markdown: başlık, kalın, liste, kod — LaTeX'e dokunmaz
+function md(t) {
+  const blocks = []; t = t.replace(/\$\$[\s\S]+?\$\$/g, m => `\u0000${blocks.push(m) - 1}\u0000`);
+  let h = esc(t)
+    .replace(/^#{3,6} (.*)$/gm, '<h4>$1</h4>').replace(/^#{1,2} (.*)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`$]+)`/g, '<code>$1</code>')
+    .replace(/^\s*(?:[-*]|\d+\.) (.*)$/gm, '<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, '<ul>$1</ul>')
+    .split(/\n{2,}/).map(p => /^\s*<(h\d|ul)/.test(p) ? p : `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  return h.replace(/\u0000(\d+)\u0000/g, (_, i) => esc(blocks[i]));
+}
+$('acts').onclick = e => { const b = e.target.closest('[data-a]'); if (b) runAI(ACTIONS.find(a => a.id === b.dataset.a).p, b); };
+$('ask').onsubmit = e => { e.preventDefault(); const q = $('askIn').value.trim(); if (q) runAI(q, null); };
+$('copyOut').onclick = async () => { try { await navigator.clipboard.writeText(lastText); $('copyOut').textContent = 'Kopyalandı'; setTimeout(() => $('copyOut').textContent = 'Sonucu kopyala', 1500); } catch {} };
+
+/* ================= Açılış ================= */
+(async () => {
+  st.index = (await DB.get('index')) || { folders: [], notes: [] };
+  if (!st.index.folders.length) {
+    const f = { id: uid(), name: 'Genel' }; st.index.folders.push(f); await DB.set('index', st.index);
+  }
+  st.folderId = LS.get('on-folder', null);
+  if (!st.index.folders.some(f => f.id === st.folderId)) st.folderId = st.index.folders[0].id;
+  const last = LS.get('on-note', null);
+  if (st.index.notes.some(n => n.id === last)) await openNote(last); else await newNote();
+  setFocus(LS.get('on-focus', false) || narrow());
+  syncUndo(); renderSide();
+})();
+
+/* ================= Çevrimdışı çalışma (PWA) ================= */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+}
+</script>
+</body>
+</html>
