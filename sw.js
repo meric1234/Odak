@@ -1,51 +1,59 @@
-// Odak Not — service worker
-// Uygulama kabuğunu önbelleğe alır, böylece internet yokken de not alınabilir.
-// Gemini (googleapis) isteklerine ASLA dokunmaz.
-// Yeni sürüm yayınlarken VERSION değerini artırın.
-const VERSION = 'odak-not-v1';
-const SHELL = [
+const CACHE_NAME = 'odak-not-v2';
+const CORE_ASSETS = [
   './',
   './index.html',
+  './style.css',
+  './focus-studio.css',
+  './storage.js',
+  './canvas-tools.js',
+  './pdf-engine.js',
+  './ai-study.js',
+  './quiz.js',
+  './app.js',
+  './focus-studio.js',
+  './graph.js',
+  './pro-tools.js',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable-512.png',
-  './icons/apple-touch-icon.png',
-  './icons/favicon.png'
+  './favicon.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+self.addEventListener('install', event => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(CORE_ASSETS.map(url => cache.add(url)))
+    )
   );
 });
 
-self.addEventListener('fetch', e => {
-  const req = e.request;
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.hostname.endsWith('googleapis.com') && !url.hostname.startsWith('fonts.')) return; // API: her zaman ağ
 
-  // Sayfa: önce ağ (güncel sürüm), olmazsa önbellek
-  if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req).then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return res; })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
+  // Gemini API isteklerini önbelleğe alma
+  if (url.hostname.includes('googleapis.com') && url.pathname.includes('generateContent')) return;
 
-  // Diğer her şey (ikonlar, KaTeX, fontlar): önce önbellek, yoksa ağdan alıp sakla
-  e.respondWith(
-    caches.match(req).then(hit => hit || fetch(req).then(res => {
-      if (res.ok || res.type === 'opaque') { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-      return res;
-    }))
+  // Ağ öncelikli (güncellemeleri anında alır), çevrimdışıysa önbellekten sunar
+  event.respondWith(
+    fetch(req)
+      .then(res => {
+        if (res && res.status === 200 && (url.origin === location.origin || url.hostname.includes('cdnjs.cloudflare.com') || url.hostname.includes('fonts.'))) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, copy)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(() => caches.match(req).then(cached => cached || (req.mode === 'navigate' ? caches.match('./index.html') : undefined)))
   );
 });
