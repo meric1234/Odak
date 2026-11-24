@@ -3,634 +3,2564 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#03010D">
+<meta name="theme-color" content="#0B0E14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="DEHB dostu, kalem odaklı mühendislik not defteri — PDF, el yazısı ve Gemini asistanı.">
 <title>Odak Not</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/favicon.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="focus-studio.css">
+
 <style>
-/*
-  ODAK NOT — ADHD dostu, kalem öncelikli mühendislik defteri
-  Token'lar #03010D (zemin) ve #472399 (aksan) renklerinden türetildi.
-  Kural: ekranda tek bir ana odak. Panel ve AI çekmecesi asla aynı anda açık kalmaz.
-*/
-:root{
-  --bg:#03010D; --surface:#0B071A; --surface-2:#120C29; --border:#24194A;
-  --accent:#472399; --accent-h:#5E35B8; --glow:#7B52DB;
-  --text:#F2EFFB; --text-2:#9E95B8;
-  --radius:14px; --sb:280px;
-  --safe-b:env(safe-area-inset-bottom,0px);
-}
-*{box-sizing:border-box;min-width:0}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
-  font:15px/1.5 Inter,system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;
-  user-select:none;-webkit-user-select:none}
-button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:10px}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
-input,select,textarea{font:inherit;font-size:16px;color:var(--text);background:var(--surface-2);
-  border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%}
-svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #timerBar,
+  .fs-dock,
+  .fs-mini,
+  .fs-float,
+  .fs-sound-sec,
+  .on-hide-unwanted {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #mp3Btn { position: relative; gap: 4px; width: auto; padding: 0 8px; }
+  #mp3Btn.playing { color: #60a5fa; background: rgba(96, 165, 250, 0.14); }
+  #mp3Name { font-size: 11px; font-weight: 600; max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #mp3Pop {
+    position: fixed !important;
+    width: 284px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 72px);
+    overflow-y: auto;
+    padding: 10px;
+    z-index: 9999 !important;
+  }
+  #mp3Pop .lbl { font-size: 10.5px; margin: 6px 0 4px; opacity: .78; }
+  #mp3Pop .lbl:first-child { margin-top: 0; }
+  #mp3Pop .mp3-track { font-size: 11.5px; opacity: .95; margin: 2px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  #mp3Pop .mp3-compact-row { display: flex; gap: 4px; }
+  #mp3Pop .mp3-compact-row .btn { font-size: 11px; padding: 5px 7px; flex: 1; justify-content: center; }
+  #mp3Pop .mp3-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 4px 0 6px; }
+  #mp3Pop .mp3-presets .btn { font-size: 10.5px; padding: 5px 6px; justify-content: flex-start; text-align: left; gap: 4px; }
+  #mp3Pop .mp3-presets .btn.active-snd { background: rgba(59, 130, 246, 0.25); border-color: #3b82f6; color: #93c5fd; font-weight: 600; }
+  #mp3Pop .mp3-seek-box { margin: 6px 0 4px; }
+  #mp3Pop .mp3-seek-row { display: flex; align-items: center; gap: 4px; }
+  #mp3Pop .mp3-seek-row .btn { font-size: 10px; padding: 3px 5px; }
+  #mp3Pop .mp3-seek-row input[type="range"] { flex: 1; accent-color: #3b82f6; height: 14px; }
+  #mp3Pop .mp3-time { display: flex; justify-content: space-between; font-size: 10px; opacity: .72; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  #mp3Pop .mp3-vol { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; }
+  #mp3Pop .mp3-vol .btn { font-size: 10px; padding: 4px 6px; }
+  #mp3Pop .mp3-vol input { flex: 1; accent-color: #3b82f6; }
+  #spenTestBadge { display: inline-block; margin-top: 6px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: rgba(255,255,255,.06); color: #94a3b8; }
+  #spenTestBadge.ok { background: rgba(34,197,94,.18); color: #4ade80; }
 
-/* ---------- Yerleşim ---------- */
-#app{display:flex;height:100%}
-#side{width:var(--sb);flex:none;background:var(--surface);border-right:1px solid var(--border);
-  display:flex;flex-direction:column;transition:margin .22s ease}
-#app.focus #side{margin-left:calc(-1 * var(--sb))}
-#main{flex:1;position:relative;display:flex;flex-direction:column}
-
-/* ---------- Sol panel ---------- */
-.side-h{display:flex;align-items:center;gap:8px;padding:18px 16px 10px}
-.side-h b{font-weight:600;letter-spacing:.2px;flex:1}
-.sec{padding:6px 10px;overflow:auto}
-.lbl{font-size:13px;color:var(--text-2);padding:10px 8px 6px;display:flex;justify-content:space-between;align-items:center}
-.item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;min-height:44px;color:var(--text-2)}
-.item:hover{background:var(--surface-2)}
-.item.on{background:var(--surface-2);color:var(--text);box-shadow:inset 3px 0 0 var(--accent)}
-.item small{margin-left:auto;font-size:13px;opacity:.7}
-.item .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#notes{flex:1}
-.addrow{display:none;gap:6px;padding:4px 8px 8px}
-.addrow.on{display:flex}
-.ico{width:44px;height:44px;display:grid;place-items:center;color:var(--text-2);flex:none}
-.ico:hover{color:var(--text);background:var(--surface-2)}
-.side-f{border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:4px}
-
-/* ---------- Üst şerit ---------- */
-#top{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg);z-index:2}
-#title{flex:1;background:transparent;border:0;font-size:20px;font-weight:600;padding:6px 8px;user-select:text;-webkit-user-select:text}
-#title:hover{background:var(--surface)}
-#saved{font-size:13px;color:var(--text-2);padding:0 8px;white-space:nowrap}
-
-/* ---------- Tuval ---------- */
-#stage{flex:1;position:relative;overflow:hidden}
-#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:crosshair}
-#empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--text-2);pointer-events:none;text-align:center;padding:24px}
-#empty.off{display:none}
-
-/* ---------- Yüzen araç çubuğu ---------- */
-#tools{position:absolute;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);
-  display:flex;align-items:center;gap:2px;padding:6px;background:rgba(11,7,26,.92);
-  border:1px solid var(--border);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.5);
-  backdrop-filter:blur(8px);z-index:3;max-width:calc(100% - 24px);overflow-x:auto}
-#tools .ico.on{color:var(--text);background:var(--accent)}
-.sep{width:1px;height:26px;background:var(--border);margin:0 4px;flex:none}
-.sw{width:44px;height:44px;display:grid;place-items:center;flex:none}
-.sw i{width:20px;height:20px;border-radius:50%;display:block;box-shadow:0 0 0 2px var(--surface)}
-.sw.on i{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--glow)}
-.wd i{background:var(--text-2);border-radius:50%;display:block}
-.wd.on i{background:var(--text)}
-.ai-btn{display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;background:var(--accent);color:var(--text);font-weight:500;flex:none}
-.ai-btn:hover{background:var(--accent-h)}
-
-/* ---------- AI çekmecesi ---------- */
-#ai{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);
-  border-left:1px solid var(--border);transform:translateX(105%);transition:transform .22s ease;
-  z-index:5;display:flex;flex-direction:column}
-#ai.on{transform:none}
-.ai-h{display:flex;align-items:center;padding:14px 12px 10px 18px;border-bottom:1px solid var(--border)}
-.ai-h b{flex:1;font-weight:600}
-.ai-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 16px}
-.act{background:var(--surface-2);border:1px solid var(--border);padding:12px;text-align:left;min-height:64px}
-.act:hover{border-color:var(--accent-h)}
-.act b{display:block;font-weight:500;font-size:14px}
-.act span{font-size:13px;color:var(--text-2)}
-.act.on{border-color:var(--glow);background:#1a1138}
-#ask{display:flex;gap:8px;padding:0 16px 12px}
-#out{flex:1;overflow:auto;padding:6px 18px 24px;user-select:text;-webkit-user-select:text;line-height:1.65}
-#out h3,#out h4{margin:18px 0 6px;font-size:16px}
-#out code{background:var(--surface-2);padding:1px 5px;border-radius:6px}
-#out .katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
-#out .hint{color:var(--text-2)}
-.copy{margin:0 16px 14px;padding:10px;border:1px solid var(--border);color:var(--text-2)}
-.dots{display:inline-flex;gap:5px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--glow);animation:p 1s infinite}
-.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
-@keyframes p{50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
-/* ---------- Ayarlar diyaloğu ---------- */
-#dlg{position:fixed;inset:0;background:rgba(3,1,13,.7);display:none;place-items:center;z-index:10;padding:16px}
-#dlg.on{display:grid}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:min(440px,100%);display:grid;gap:12px}
-.card h2{margin:0;font-size:18px}
-.card p{margin:0;color:var(--text-2);font-size:14px}
-.row{display:flex;gap:8px;justify-content:flex-end}
-.btn{padding:10px 16px;min-height:44px;border:1px solid var(--border)}
-.btn.pri{background:var(--accent);border-color:var(--accent)}
-.chk{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-2)}
-.chk input{width:20px;height:20px;accent-color:var(--accent)}
-
-@media (max-width:760px){
-  #side{position:absolute;z-index:6;height:100%;box-shadow:10px 0 30px rgba(0,0,0,.5)}
-  #saved{display:none}
-}
+  input,
+  textarea,
+  [contenteditable],
+  [contenteditable="true"],
+  [contenteditable="plaintext-only"],
+  #worldTop [contenteditable],
+  #worldTop textarea,
+  #worldTop input,
+  .txt-box,
+  .text-box,
+  .note-txt,
+  .snote-b,
+  .card-txt {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
+    touch-action: manipulation !important;
+  }
+  .key-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .key-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .key-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
 </style>
+
+<script defer src="storage.js"></script>
+<script defer src="canvas-tools.js"></script>
+<script defer src="pdf-engine.js"></script>
+<script defer src="ai-study.js"></script>
+<script defer src="quiz.js"></script>
+<script defer src="app.js"></script>
+<script defer src="focus-studio.js"></script>
+<script defer src="graph.js"></script>
+<script defer src="pro-tools.js"></script>
 </head>
 <body>
 <div id="app">
-  <!-- SOL PANEL -->
-  <aside id="side" aria-label="Klasörler ve notlar">
-    <div class="side-h"><b>Odak Not</b>
-      <button class="ico" id="hideSide" title="Paneli kapat"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+
+  <aside id="side" aria-label="Kütüphane ve defter gezinme">
+    <div class="side-h">
+      <b class="brand">Odak Not</b>
+      <button class="ico" id="hideSide" data-icon="chevL" title="Paneli kapat"></button>
     </div>
-    <div class="sec">
-      <div class="lbl">Dersler <button class="ico" id="addFolderBtn" title="Ders ekle" style="width:32px;height:32px"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
-      <div class="addrow" id="folderRow"><input id="folderIn" placeholder="Ders adı (ör. Diferansiyel Denklemler)"><button class="btn pri" id="folderOk">Ekle</button></div>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button role="tab" data-tab="lib" class="on" title="Dersler ve defterler"><span data-icon="folder"></span>Kütüphane</button>
+      <button role="tab" data-tab="pages" title="Sayfa önizlemeleri"><span data-icon="pages"></span>Sayfalar</button>
+      <button role="tab" data-tab="toc" title="PDF içindekiler"><span data-icon="toc"></span>İçindekiler</button>
+      <button role="tab" data-tab="find" title="Defterde ara"><span data-icon="search"></span>Ara</button>
+    </nav>
+
+    <section class="pane on" id="paneLib">
+      <div class="lbl">Dersler <button class="ico sm" id="addFolderBtn" data-icon="plus" title="Ders ekle"></button></div>
+      <form class="addrow" id="folderRow"><input id="folderIn" placeholder="Ders adı (ör. Sinyaller ve Sistemler)" autocomplete="off"><button class="btn pri">Ekle</button></form>
       <div id="folders"></div>
-    </div>
-    <div class="sec" id="notes"></div>
+      <div class="lbl">Defterler</div>
+      <div id="notebooks"></div>
+    </section>
+
+    <section class="pane" id="panePages">
+      <div class="pane-acts">
+        <button class="btn" id="addPageBtn"><span data-icon="plus"></span>Boş sayfa ekle</button>
+        <button class="btn ghost" id="delPageBtn" title="Bu sayfayı sil"><span data-icon="trash"></span></button>
+      </div>
+      <div id="thumbs" class="thumbs"></div>
+    </section>
+
+    <section class="pane" id="paneToc"><div id="toc"></div></section>
+
+    <section class="pane" id="paneFind">
+      <form id="findForm" class="find"><input id="findIn" type="search" placeholder="Defterde ara…" autocomplete="off"></form>
+      <p class="hint small" id="findProg"></p>
+      <div id="findRes"></div>
+    </section>
+
     <div class="side-f">
-      <button class="item" id="newNote" style="color:var(--text)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Yeni not</button>
-      <button class="ico" id="openSettings" title="Ayarlar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <button class="btn pri wide" id="newNbBtn"><span data-icon="plus"></span>Yeni defter</button>
+      <button class="ico" id="openSettings" data-icon="settings" title="Ayarlar"></button>
     </div>
   </aside>
 
-  <!-- ANA ALAN -->
   <main id="main">
-    <div id="top">
-      <button class="ico" id="toggleSide" title="Paneli aç/kapat (odak modu)"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-      <input id="title" aria-label="Not başlığı" value="Adsız not">
-      <span id="saved">Kaydedildi</span>
-      <button class="ico" id="bgBtn" title="Arka plan: ızgara / nokta / düz"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16"/></svg></button>
-    </div>
-    <div id="stage">
-      <canvas id="cv"></canvas>
-      <div id="empty">Kalemle yazmaya başla.<br>Parmakla kaydır, iki parmakla yukarı-aşağı gez.</div>
+    <header id="top">
+      <button class="ico" id="toggleSide" data-icon="menu" title="Paneli aç/kapat"></button>
+      <input id="title" aria-label="Defter başlığı" value="Odak Not" autocomplete="off">
+      <span id="saved" aria-live="polite">Kaydedildi</span>
+      <button class="ico timer" id="timerBtn" title="Odak sayacı (sessiz)"><span data-icon="timer"></span><b id="timerTxt"></b></button>
+      <button class="ico" id="mp3Btn" title="Odak müziği / MP3 & DEHB sesleri" aria-label="Odak Sesi">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span id="mp3Name" hidden></span>
+      </button>
+      <button class="ico" id="studyBtn" data-icon="study" title="Çalışma özeti"></button>
+      <button class="ico" id="paperBtn" data-icon="paper" title="Kâğıt ve sayfa düzeni"></button>
+      <button class="ico" id="exportBtn" data-icon="export" title="PDF olarak dışa aktar"></button>
+      <button class="ico" id="zenBtn" data-icon="zen" title="Zen / odak modu (Z)"></button>
+      <button class="ai-btn" id="aiOpen" title="Gemini çalışma asistanı"><span data-icon="sparkle"></span><span class="lbl-t">Asistan</span></button>
+    </header>
 
-      <div id="tools" role="toolbar" aria-label="Kalem araçları">
-        <button class="ico on" id="tPen" title="Kalem (P)"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button>
-        <button class="ico" id="tHl" title="Fosforlu (H)"><svg viewBox="0 0 24 24"><path d="M9 15l-3 5h6M9 15l8-8 3 3-8 8zM14 6l4 4"/></svg></button>
-        <button class="ico" id="tEr" title="Silgi (E)"><svg viewBox="0 0 24 24"><path d="M8 20h12M4 15l9-9 6 6-7 7H8z"/></svg></button>
-        <span class="sep"></span>
-        <span id="swatches" style="display:flex"></span>
-        <span class="sep"></span>
-        <span id="widths" style="display:flex"></span>
-        <span class="sep"></span>
-        <button class="ico" id="undo" title="Geri al (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
-        <button class="ico" id="redo" title="Yinele (Ctrl+Y)"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
-        <span class="sep"></span>
-        <button class="ai-btn" id="aiOpen" title="Gemini ile çalış"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>Asistan</button>
+    <div id="stage">
+      <div id="world"></div>
+      <canvas id="hlCanvas" class="layer"></canvas>
+      <canvas id="inkCanvas" class="layer"></canvas>
+      <canvas id="liveCanvas" class="layer"></canvas>
+      <div id="worldTop"></div>
+
+      <div id="empty" hidden>
+        <p><b>Kütüphanen boş.</b><br>Yeni bir defter aç ya da bir ders PDF'i içe aktar.</p>
+        <div class="row center"><button class="btn pri" id="emptyNew">Yeni defter</button><button class="btn" id="emptyPdf">PDF aç</button></div>
       </div>
 
-      <!-- AI ÇEKMECESİ -->
-      <section id="ai" aria-label="Gemini asistanı">
-        <div class="ai-h"><b>Asistan</b><button class="ico" id="aiClose" title="Kapat"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div id="gizmoBar" class="floatbar" data-ui hidden>
+        <button id="gzColor" title="Seçili çizgileri mevcut renge boya"><i class="dot" id="gzDot"></i>Renk</button>
+        <button id="gzDup" data-icon="copy" title="Çoğalt"></button>
+        <button id="gzDel" data-icon="trash" title="Sil"></button>
+        <button id="gzAi" class="acc"><span data-icon="sparkle"></span>Gemini'ye gönder</button>
+      </div>
+
+      <div id="selMenu" class="floatbar" data-ui hidden>
+        <button data-sel="translate">Türkçeye çevir</button>
+        <button data-sel="summarize">Özetle</button>
+        <button data-sel="explain">Açıkla</button>
+        <button data-sel="copy" data-icon="copy" title="Kopyala"></button>
+        <span class="sep"></span>
+        <span id="selColors"></span>
+      </div>
+
+      <canvas id="minimap" data-ui title="Mini harita — dokun ve sürükle"></canvas>
+      <button id="backBtn" class="pill" data-ui hidden><span data-icon="target"></span>Son yazılan yere dön</button>
+      <button id="zenExit" class="pill faint" data-ui hidden>Zen'den çık</button>
+
+      <div id="tools" data-ui role="toolbar" aria-label="Kalem araçları">
+        <button class="grip" id="toolGrip" title="Sürükle — araç çubuğunu taşı" aria-label="Araç çubuğunu taşı"></button>
+        <div class="tgroup" id="toolBtns">
+          <button class="ico" data-tool="pen" title="Kalem (P) — tekrar dokun: kalem türü ve kalınlık"></button>
+          <button class="ico" data-tool="highlighter" data-icon="highlighter" title="Fosforlu kalem (H)"></button>
+          <button class="ico" data-tool="eraser" data-icon="eraser" title="Silgi (E) — tekrar dokun: silgi modu"></button>
+          <button class="ico" data-tool="lasso" data-icon="lasso" title="Kement (L)"></button>
+          <button class="ico" data-tool="laser" data-icon="laser" title="Lazer işaretçi"></button>
+          <button class="ico" data-tool="textsel" data-icon="textsel" title="PDF metni seç (S)"></button>
+          <button class="ico" data-tool="insert" data-icon="insert" title="Ekle: metin kutusu, görsel"></button>
+        </div>
+        <span class="sep collapsible"></span>
+        <div class="tgroup collapsible" id="swatches"></div>
+        <label class="ico collapsible colorpick" title="Tüm renkler"><input type="color" id="colorPick" aria-label="Renk seçici"><span data-icon="palette"></span></label>
+        <span class="sep collapsible"></span>
+        <div class="tgroup collapsible" id="sizes"></div>
+        <span class="sep collapsible"></span>
+        <button class="ico collapsible" id="undo" data-icon="undo" title="Geri al (Ctrl+Z, iki parmakla dokun)"></button>
+        <button class="ico collapsible" id="redo" data-icon="redo" title="Yinele (Ctrl+Y, üç parmakla dokun)"></button>
+        <button class="ico" id="collapseTools" data-icon="chevL" title="Araç çubuğunu katla"></button>
+      </div>
+      <div id="toolPop" class="pop" data-ui hidden></div>
+
+      <section id="ai" data-ui aria-label="Gemini çalışma asistanı">
+        <div class="ai-h"><b>Asistan</b><button class="ico" id="aiClose" data-icon="close" title="Kapat"></button></div>
+        <div id="aiCtx" class="ai-ctx" hidden>
+          <img id="aiCtxImg" alt="Gönderilecek bölge" hidden>
+          <span id="aiCtxLbl"></span>
+          <button class="ico sm" id="aiCtxClear" data-icon="close" title="Bağlamı temizle (sayfaya dön)"></button>
+        </div>
         <div class="ai-acts" id="acts"></div>
-        <form id="ask"><input id="askIn" placeholder="Bu sayfa hakkında soru sor…"><button class="btn pri" type="submit">Sor</button></form>
-        <div id="out"><p class="hint">Sayfadaki el yazını Gemini'ye görüntü olarak gönderir. Bir işlem seç — sonuç burada, LaTeX ile görünür.</p></div>
-        <button class="copy" id="copyOut">Sonucu kopyala</button>
+        <form id="ask"><input id="askIn" placeholder="Bu sayfa hakkında soru sor…" autocomplete="off"><button class="btn pri">Sor</button></form>
+        <div id="out"><p class="hint">Sayfayı ya da kementle seçtiğin bölgeyi Gemini'ye gönderir. Yanıtı bir kart olarak tuvale sabitleyebilirsin.</p></div>
+        <div id="outActs" class="row" hidden>
+          <button class="btn pri" id="pinOut"><span data-icon="pin"></span>Tuvale sabitle</button>
+          <button class="btn" id="copyOut"><span data-icon="copy"></span>Kopyala</button>
+        </div>
       </section>
+
+      <div id="toast" role="status" aria-live="polite"></div>
     </div>
   </main>
 </div>
 
-<!-- AYARLAR -->
-<div id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
-  <form class="card" id="setForm">
-    <h2 id="dlgT">Ayarlar</h2>
-    <p>Gemini API anahtarın yalnızca bu cihazda saklanır ve doğrudan Google'a gönderilir.</p>
-    <input id="keyIn" type="password" placeholder="Gemini API anahtarı" autocomplete="off">
-    <select id="modelIn">
-      <option value="gemini-3.8-flash">gemini-3.8-flash (önerilen)</option>
-      <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (hızlı, ucuz)</option>
-      <option value="gemini-flash-latest">gemini-flash-latest (her zaman en yeni)</option>
-    </select>
-    <input id="modelCustom" placeholder="veya özel model adı (isteğe bağlı)">
-    <label class="chk"><input type="checkbox" id="penOnly"> Sadece kalemle çiz (avuç içi reddi)</label>
-    <p id="testMsg" style="min-height:1.5em"></p>
-    <div class="row"><button type="button" class="btn" id="testBtn" style="margin-right:auto">Bağlantıyı test et</button><button type="button" class="btn" id="setCancel">Vazgeç</button><button class="btn pri">Kaydet</button></div>
+<div class="modal" id="newNbDlg" role="dialog" aria-modal="true" aria-labelledby="newNbT">
+  <form class="card" id="newNbForm">
+    <h2 id="newNbT">Yeni defter</h2>
+    <input id="nbTitle" placeholder="Defter adı (ör. Hafta 5 — Laplace)" autocomplete="off">
+    <div class="seg" id="nbMode">
+      <button type="button" data-v="p" class="on">A4 dikey</button><button type="button" data-v="l">A4 yatay</button><button type="button" data-v="inf">Sınırsız tuval</button>
+    </div>
+    <div class="lbl">Şablon</div><div class="chips" id="nbTpl"></div>
+    <div class="lbl">Kâğıt rengi</div><div class="chips" id="nbTheme"></div>
+    <div class="row"><button type="button" class="btn" id="nbFromPdf"><span data-icon="export" class="flip"></span>PDF'den oluştur</button><span class="grow"></span><button type="button" class="btn" data-close>Vazgeç</button><button class="btn pri">Oluştur</button></div>
+    <p class="hint small" id="nbMsg"></p>
   </form>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<div class="modal" id="paperDlg" role="dialog" aria-modal="true" aria-labelledby="paperT">
+  <div class="card">
+    <h2 id="paperT">Kâğıt ve düzen</h2>
+    <div id="paperLayoutBox"><div class="lbl">Düzen</div>
+      <div class="seg" id="pdLayout"><button data-v="p">A4 dikey</button><button data-v="l">A4 yatay</button><button data-v="inf">Sınırsız tuval</button></div></div>
+    <div class="lbl">Şablon <small class="hint" id="pdTplNote"></small></div><div class="chips" id="pdTpl"></div>
+    <div class="lbl">Kâğıt rengi</div><div class="chips" id="pdTheme"></div>
+    <label class="chk" id="pdDarkRow"><input type="checkbox" id="pdDark"> PDF'yi koyu göster (göz yormaz)</label>
+    <div class="row"><span class="grow"></span><button class="btn pri" data-close>Tamam</button></div>
+  </div>
+</div>
+
+<div class="modal" id="exportDlg" role="dialog" aria-modal="true" aria-labelledby="expT">
+  <div class="card">
+    <h2 id="expT">PDF olarak dışa aktar</h2>
+    <div class="seg" id="expScope"><button data-v="page">Bu sayfa</button><button data-v="nb" class="on">Tüm defter</button><button data-v="folder">Tüm ders</button></div>
+    <label class="chk"><input type="checkbox" id="expPrint" checked> Yazdırma dostu (koyu kâğıt beyaza, mürekkep koyuya)</label>
+    <label class="chk"><input type="checkbox" id="expCards" checked> Yapışkan kartları dahil et</label>
+    <div class="seg" id="expQ"><button data-v="2" class="on">Standart</button><button data-v="3">Yüksek çözünürlük</button></div>
+    <div class="progress" id="expProg" hidden><i></i></div>
+    <p class="hint small" id="expMsg"></p>
+    <div class="row"><span class="grow"></span><button class="btn" id="expCancel">Kapat</button><button class="btn pri" id="expGo">Dışa aktar</button></div>
+  </div>
+</div>
+
+<div class="modal" id="studyDlg" role="dialog" aria-modal="true" aria-labelledby="sgT">
+  <div class="card wide">
+    <div class="row"><h2 id="sgT">Çalışma özeti</h2><span class="grow"></span><small class="hint" id="sgCount"></small><button class="ico" data-close data-icon="close" title="Kapat"></button></div>
+    <div class="chips" id="sgFilters"></div>
+    <div class="sg-list" id="sgList"></div>
+    <div class="row wrap">
+      <button class="btn" id="sgCopy"><span data-icon="copy"></span>Markdown kopyala</button>
+      <button class="btn" id="sgAdd"><span data-icon="plus"></span>Deftere özet sayfası ekle</button>
+      <button class="btn pri" id="sgQuizBtn"><span data-icon="sparkle"></span>Sınav soruları üret</button>
+    </div>
+    <div id="sgQuiz" hidden><div class="sg-quiz" id="sgQuizOut"></div>
+      <div class="row"><button class="btn" id="sgQuizPin"><span data-icon="pin"></span>Tuvale sabitle</button><button class="btn" id="sgQuizCopy"><span data-icon="copy"></span>Kopyala</button></div></div>
+  </div>
+</div>
+
+<div class="modal" id="settingsDlg" role="dialog" aria-modal="true" aria-labelledby="setT">
+  <form class="card" id="setForm">
+    <h2 id="setT">Ayarlar</h2>
+    <div class="lbl">Gemini</div>
+    <p class="hint small">API anahtarın yalnızca bu cihazda saklanır ve doğrudan Google'a gönderilir. Ücretsiz anahtar: aistudio.google.com/apikey</p>
+    <div class="key-box">
+      <input id="keyIn" type="text" spellcheck="false" autocapitalize="off" placeholder="Gemini API anahtarını buraya yapıştır (AIza...)" autocomplete="off">
+      <div class="key-actions">
+        <button type="button" class="btn" id="keyPasteBtn">Panodan Yapıştır</button>
+        <button type="button" class="btn" id="keyCopyBtn">Kopyala</button>
+        <button type="button" class="btn ghost" id="keyClearBtn">Temizle</button>
+      </div>
+    </div>
+    <select id="modelIn">
+      <option value="gemini-3.8-flash">gemini-3.8-flash (önerilen)</option>
+      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+      <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (hızlı, yüksek kota)</option>
+      <option value="gemini-flash-latest">gemini-flash-latest (her zaman en yeni)</option>
+    </select>
+    <input id="modelCustom" placeholder="veya özel model adı (isteğe bağlı)" autocomplete="off">
+    <p id="testMsg" class="hint small pre"></p>
+    <div class="lbl">Kalem ve ekran</div>
+    <label class="chk"><input type="checkbox" id="fingerDraw"> Parmakla çizime izin ver (kalemsiz cihazlar; iki parmak kaydırır)</label>
+    <label class="chk"><input type="checkbox" id="showMini"> Mini haritayı göster</label>
+    <div class="lbl">S Pen yan tuş görevi</div>
+    <select id="spenAction">
+      <option value="eraser-hold">Basılı tutunca Silgi (bırakınca kaleme dön)</option>
+      <option value="lasso-hold">Basılı tutunca Kement Seçim (bırakınca dön)</option>
+      <option value="eraser-toggle">Tıklayınca Kalem ↔ Silgi değiştir</option>
+      <option value="highlighter-toggle">Tıklayınca Kalem ↔ Fosforlu değiştir</option>
+      <option value="undo">Tıklayınca Son işlemi geri al (Undo)</option>
+      <option value="ai">Tıklayınca Gemini Asistan'ı aç/kapat</option>
+      <option value="none">Kapalı</option>
+    </select>
+    <div id="spenTestBadge">S Pen tuş testi: Kalemi ekrana yaklaştırıp yan tuşa bas</div>
+    <div class="lbl">Depolama</div>
+    <div class="progress" id="quotaBar"><i></i></div>
+    <p class="hint small" id="quotaTxt"></p>
+    <div class="row wrap">
+      <button type="button" class="btn" id="backupBtn"><span data-icon="export"></span>Yedek al (.odaknot)</button>
+      <button type="button" class="btn" id="restoreBtn"><span data-icon="export" class="flip"></span>Yedekten yükle</button>
+      <button type="button" class="btn ghost" id="cleanBtn">Kullanılmayan PDF'leri temizle</button>
+    </div>
+    <p class="hint small pre" id="backupMsg"></p>
+    <div class="row"><button type="button" class="btn" id="testBtn">Bağlantıyı test et</button><span class="grow"></span><button type="button" class="btn" data-close>Vazgeç</button><button class="btn pri">Kaydet</button></div>
+  </form>
+</div>
+
+<div class="modal" id="confirmDlg" role="alertdialog" aria-modal="true" aria-labelledby="cfT">
+  <div class="card narrow">
+    <h2 id="cfT"></h2>
+    <p class="hint" id="cfMsg"></p>
+    <div class="row"><span class="grow"></span><button class="btn" id="cfNo">Vazgeç</button><button class="btn danger" id="cfYes">Tamam</button></div>
+  </div>
+</div>
+
+<div class="pop" id="timerPop" data-ui hidden>
+  <div class="lbl">Sessiz odak sayacı</div>
+  <div class="row"><button class="btn" data-min="15">15 dk</button><button class="btn" data-min="25">25 dk</button><button class="btn" data-min="45">45 dk</button></div>
+  <button class="btn ghost wide" id="timerStop" hidden>Sayacı durdur</button>
+</div>
+
+<div class="pop" id="mp3Pop" data-ui hidden>
+  <div class="lbl">Müzik &amp; Ortam Sesleri</div>
+  <div class="mp3-track" id="mp3Track">Seçim yapılmadı</div>
+  <div class="mp3-compact-row">
+    <button type="button" class="btn pri" id="mp3Pick">+ MP3</button>
+    <button type="button" class="btn" id="mp3Play" disabled>Oynat</button>
+    <button type="button" class="btn" id="mp3Next" hidden>Sonraki</button>
+  </div>
+  <div class="mp3-presets" id="adhdPresets">
+    <button type="button" class="btn" data-snd="fire">🔥 Şömine</button>
+    <button type="button" class="btn" data-snd="rain">🌧️ Yağmur</button>
+    <button type="button" class="btn" data-snd="piano">🎹 Piyano</button>
+    <button type="button" class="btn" data-snd="symphony">🎼 Senfoni</button>
+    <button type="button" class="btn" data-snd="lofi">🎧 Lo-Fi</button>
+    <button type="button" class="btn" data-snd="forest">🌲 Orman</button>
+    <button type="button" class="btn" data-snd="city">🏙️ Şehir</button>
+    <button type="button" class="btn" data-snd="gamma40">⚡ 40Hz Binaural</button>
+    <button type="button" class="btn" data-snd="theta">🌊 6Hz Theta</button>
+    <button type="button" class="btn" data-snd="brown">🧠 Brown Noise</button>
+  </div>
+  <div class="mp3-seek-box">
+    <div class="mp3-seek-row">
+      <button type="button" class="btn ghost" id="mp3Rew" disabled title="10 sn geri">-10s</button>
+      <input type="range" id="mp3Seek" min="0" max="100" step="0.1" value="0" disabled>
+      <button type="button" class="btn ghost" id="mp3Fwd" disabled title="10 sn ileri">+10s</button>
+    </div>
+    <div class="mp3-time">
+      <span id="mp3CurTime">00:00</span>
+      <span id="mp3DurTime">00:00</span>
+    </div>
+  </div>
+  <div class="mp3-vol">
+    <span>Ses</span>
+    <input type="range" id="mp3Vol" min="0" max="1" step="0.05" value="0.6">
+    <button type="button" class="btn ghost" id="mp3Loop">Döngü: Açık</button>
+  </div>
+</div>
+
+<input type="file" id="pdfIn" accept="application/pdf,.pdf" hidden>
+<input type="file" id="imgIn" accept="image/*" hidden>
+<input type="file" id="mp3In" accept="audio/*,.mp3,.m4a,.wav,.ogg" multiple hidden>
+<input type="file" id="restoreIn" accept=".odaknot,application/octet-stream" hidden>
+
 <script>
-{
-/* ================= Depolama (IndexedDB, localStorage yedekli) ================= */
-const DB = (() => {
-  let dbp;
-  try {
-    dbp = new Promise((res, rej) => {
-      const r = indexedDB.open('odak-not', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('kv');
-      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
-    });
-  } catch (e) { dbp = Promise.reject(e); }
-  const tx = (mode, fn) => dbp.then(db => new Promise((res, rej) => {
-    const t = db.transaction('kv', mode), s = t.objectStore('kv'), q = fn(s);
-    t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error);
-  }));
-  return {
-    get: k => tx('readonly', s => s.get(k)).catch(() => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }),
-    set: (k, v) => tx('readwrite', s => s.put(v, k)).catch(() => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }),
-    del: k => tx('readwrite', s => s.delete(k)).catch(() => { try { localStorage.removeItem(k); } catch {} })
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+function prettifyMathText(raw) {
+  if (!raw || typeof raw !== 'string') return raw || '';
+  const supMap = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','=':'⁼','(':'⁽',')':'⁾','n':'ⁿ','i':'ⁱ','k':'ᵏ','x':'ˣ','y':'ʸ','t':'ᵗ' };
+  const subMap = { '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋','=':'₌','(':'₍',')':'₎','a':'ₐ','e':'ₑ','i':'ᵢ','o':'ₒ','n':'ₙ','m':'ₘ','k':'ₖ' };
+  const toSup = s => [...s].map(ch => supMap[ch] || ('^' + ch)).join('');
+  const toSub = s => [...s].map(ch => subMap[ch] || ('_' + ch)).join('');
+
+  const convertExpr = expr => {
+    let t = String(expr || '').trim();
+    t = t.replace(/\\text\{([^}]*)\}|\\mathrm\{([^}]*)\}|\\mathbf\{([^}]*)\}/g, (_, a, b, c) => (a || b || c || ''));
+    t = t.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+    t = t.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
+    t = t.replace(/\\left|\\right/g, '');
+    t = t.replace(/\\times|\\cdot/g, '×');
+    t = t.replace(/\\div/g, '÷');
+    t = t.replace(/\\pm/g, '±');
+    t = t.replace(/\\mp/g, '∓');
+    t = t.replace(/\\approx/g, '≈');
+    t = t.replace(/\\neq|\\ne/g, '≠');
+    t = t.replace(/\\leq|\\le/g, '≤');
+    t = t.replace(/\\geq|\\ge/g, '≥');
+    t = t.replace(/\\rightarrow|\\to/g, '→');
+    t = t.replace(/\\Rightarrow/g, '⇒');
+    t = t.replace(/\\infty/g, '∞');
+    t = t.replace(/\\sum/g, '∑');
+    t = t.replace(/\\int/g, '∫');
+    t = t.replace(/\\prod/g, '∏');
+    t = t.replace(/\\partial/g, '∂');
+    t = t.replace(/\\nabla/g, '∇');
+    t = t.replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\delta/g, 'δ');
+    t = t.replace(/\\Delta/g, 'Δ').replace(/\\Theta/g, 'Θ').replace(/\\theta/g, 'θ').replace(/\\lambda/g, 'λ');
+    t = t.replace(/\\mu/g, 'μ').replace(/\\pi/g, 'π').replace(/\\rho/g, 'ρ').replace(/\\sigma/g, 'σ').replace(/\\Sigma/g, 'Σ');
+    t = t.replace(/\\tau/g, 'τ').replace(/\\phi/g, 'φ').replace(/\\Phi/g, 'Φ').replace(/\\omega/g, 'ω').replace(/\\Omega/g, 'Ω');
+    t = t.replace(/\^\{([^{}]+)\}/g, (_, g) => toSup(g));
+    t = t.replace(/\^([0-9a-zA-Z+-])/g, (_, g) => toSup(g));
+    t = t.replace(/_\{([^{}]+)\}/g, (_, g) => toSub(g));
+    t = t.replace(/_([0-9a-zA-Z+-])/g, (_, g) => toSub(g));
+    t = t.replace(/[{}]/g, '');
+    return t.replace(/\s{2,}/g, ' ').trim();
   };
-})();
-const LS = {
-  get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
-};
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-const $ = id => document.getElementById(id);
 
-/* ================= Durum ================= */
-const COLORS = ['#F2EFFB', '#9B7BFF', '#5FD3C6', '#FFB86B'];   // beyaz, mor, turkuaz, amber — az ve ayırt edilebilir
-const WIDTHS = [1.6, 2.8, 5];
-const HL_COLOR = 'rgba(123,82,219,0.35)';
-const st = {
-  index: { folders: [], notes: [] },   // notes: {id, folderId, title, updated}
-  folderId: null, noteId: null,
-  strokes: [], bg: 'grid', scrollY: 0,
-  tool: 'pen', color: COLORS[0], width: WIDTHS[1],
-  undo: [], redo: [],
-  settings: LS.get('on-settings', { key: '', model: 'gemini-3.8-flash', custom: '', penOnly: false }),
-  penSeen: false
-};
-
-/* ================= Tuval ================= */
-const cv = $('cv'), ctx = cv.getContext('2d', { desynchronized: true });
-let W = 0, H = 0, DPR = 1;
-function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 3);
-  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-  redraw();
+  let out = raw;
+  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_, inner) => '\n' + convertExpr(inner) + '\n');
+  out = out.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (_, inner) => convertExpr(inner));
+  return out.replace(/\n{3,}/g, '\n\n').trim();
 }
-new ResizeObserver(resize).observe(cv);
+window.prettifyMathText = prettifyMathText;
 
-function drawBg(c, w, h, oy) {
-  c.fillStyle = '#03010D'; c.fillRect(0, 0, w, h);
-  if (st.bg === 'plain') return;
-  const g = 32, off = -(oy % g);
-  if (st.bg === 'grid') {
-    c.strokeStyle = 'rgba(36,25,74,0.75)'; c.lineWidth = 1; c.beginPath();
-    for (let x = g; x < w; x += g) { c.moveTo(x + .5, 0); c.lineTo(x + .5, h); }
-    for (let y = off; y < h; y += g) { c.moveTo(0, y + .5); c.lineTo(w, y + .5); }
-    c.stroke();
-  } else {
-    c.fillStyle = 'rgba(94,53,184,0.45)';
-    for (let x = g; x < w; x += g) for (let y = off; y < h; y += g) { c.beginPath(); c.arc(x, y, 1.2, 0, 6.283); c.fill(); }
-  }
-}
-// Basınca duyarlı, orta-nokta yumuşatmalı çizgi
-function drawStroke(c, s, oy, from = 0) {
-  const p = s.pts; if (!p.length) return;
-  c.lineCap = 'round'; c.lineJoin = 'round';
-  c.strokeStyle = s.hl ? HL_COLOR : s.color;
-  if (p.length === 1) {
-    c.fillStyle = c.strokeStyle; c.beginPath();
-    c.arc(p[0][0], p[0][1] - oy, s.w * (0.5 + p[0][2]) / 2, 0, 6.283); c.fill(); return;
-  }
-  if (s.hl) { // fosforlu: sabit genişlik, tek path (üst üste binince koyulaşmasın)
-    if (from > 0) return;
-    c.lineWidth = s.w; c.lineCap = 'butt'; c.beginPath(); c.moveTo(p[0][0], p[0][1] - oy);
-    for (let i = 1; i < p.length; i++) c.lineTo(p[i][0], p[i][1] - oy);
-    c.stroke(); return;
-  }
-  for (let i = Math.max(1, from); i < p.length; i++) {
-    const a = p[i - 1], b = p[i], z = i > 1 ? p[i - 2] : a;
-    const m1x = (z[0] + a[0]) / 2, m1y = (z[1] + a[1]) / 2, m2x = (a[0] + b[0]) / 2, m2y = (a[1] + b[1]) / 2;
-    c.lineWidth = s.w * (0.45 + 0.9 * ((a[2] + b[2]) / 2));
-    c.beginPath(); c.moveTo(m1x, m1y - oy); c.quadraticCurveTo(a[0], a[1] - oy, m2x, m2y - oy); c.stroke();
-  }
-}
-function redraw() {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  drawBg(ctx, W, H, st.scrollY);
-  const top = st.scrollY - 20, bot = st.scrollY + H + 20;
-  for (const s of st.strokes) if (s.maxY >= top && s.minY <= bot) drawStroke(ctx, s, st.scrollY);
-  if (cur) drawStroke(ctx, cur, st.scrollY);
-  $('empty').classList.toggle('off', st.strokes.length > 0 || !!cur);
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const cleanExtraTimerUI = () => {
+    const timerPop = document.getElementById('timerPop');
+    if (timerPop) {
+      timerPop.querySelectorAll('*').forEach(el => {
+        const txt = (el.textContent || '').trim();
+        if (txt.startsWith('Odak Sesi')) {
+          el.classList.add('on-hide-unwanted');
+          let sib = el.nextElementSibling;
+          while (sib) {
+            sib.classList.add('on-hide-unwanted');
+            sib = sib.nextElementSibling;
+          }
+        }
+      });
+    }
 
-/* ================= Girdi: kalem / parmak / silgi ================= */
-let cur = null, panning = null, erasing = false, eraseSnap = null;
-const touches = new Map();
-const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top + st.scrollY]; };
-const pressure = e => (e.pointerType === 'pen' ? (e.pressure || 0.5) : 0.5);
-const round = v => Math.round(v * 10) / 10;
+    document.querySelectorAll('#stage > div, body > div, #main > div').forEach(el => {
+      if (el.id === 'tools' || el.id === 'timerPop' || el.id === 'mp3Pop' || el.id === 'ai' || el.id === 'gizmoBar' || el.id === 'selMenu') return;
+      if (el.closest && el.closest('#tools, #timerPop, #mp3Pop, #ai, #side, #top')) return;
+      const txt = (el.textContent || '');
+      if (txt.includes('Kronometre') && txt.includes('Sıfırla') && (txt.includes('Ses:') || txt.includes('-5d') || txt.includes('+5d'))) {
+        el.classList.add('on-hide-unwanted');
+      }
+    });
+  };
 
-function bounds(s) { let a = Infinity, b = -Infinity; for (const p of s.pts) { if (p[1] < a) a = p[1]; if (p[1] > b) b = p[1]; } s.minY = a - s.w; s.maxY = b + s.w; }
-function pushUndo() { st.undo.push(st.strokes.slice()); if (st.undo.length > 100) st.undo.shift(); st.redo = []; syncUndo(); }
+  cleanExtraTimerUI();
+  setTimeout(cleanExtraTimerUI, 150);
+  setTimeout(cleanExtraTimerUI, 600);
+  if (document.body) {
+    new MutationObserver(() => cleanExtraTimerUI()).observe(document.body, { childList: true, subtree: true });
+  }
 
-function eraseAt(x, y) {
-  const r = 12 + st.width * 2; let hit = false;
-  st.strokes = st.strokes.filter(s => {
-    if (y < s.minY - r || y > s.maxY + r) return true;
-    for (const p of s.pts) if ((p[0] - x) ** 2 + (p[1] - y) ** 2 < r * r) { hit = true; return false; }
+  const appNs = window.ON || (window.ON = {});
+
+  const isTextEditable = el => {
+    if (!el || typeof el.closest !== 'function') return false;
+    return !!el.closest('input, textarea, [contenteditable], #worldTop [contenteditable], #worldTop textarea, #worldTop input, .txt-box, .text-box, .note-txt, .snote-b, .card-txt');
+  };
+
+  const insertTextIntoEditable = (el, text) => {
+    if (!el) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      const start = el.selectionStart ?? el.value.length;
+      const end = el.selectionEnd ?? el.value.length;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + text.length;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    const ed = el.isContentEditable ? el : el.closest('[contenteditable]');
+    if (ed) {
+      ed.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (ed.contains(range.commonAncestorContainer)) {
+          range.deleteContents();
+          const lines = text.split('\n');
+          const frag = document.createDocumentFragment();
+          lines.forEach((line, i) => {
+            if (i > 0) frag.appendChild(document.createElement('br'));
+            frag.appendChild(document.createTextNode(line));
+          });
+          range.insertNode(frag);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          ed.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+      }
+      ed.textContent = (ed.textContent || '') + text;
+      ed.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+
+  const bindEditableElement = el => {
+    if (!el || el.dataset.pasteBound === '1') return;
+    el.dataset.pasteBound = '1';
+    el.style.userSelect = 'text';
+    el.style.webkitUserSelect = 'text';
+    el.style.webkitTouchCallout = 'default';
+
+    el.addEventListener('contextmenu', e => {
+      e.stopPropagation();
+    });
+
+    el.addEventListener('paste', e => {
+      e.stopPropagation();
+      const clip = e.clipboardData?.getData('text/plain');
+      if (!clip) return;
+      const clean = prettifyMathText(clip);
+      if (clean !== clip) {
+        e.preventDefault();
+        insertTextIntoEditable(el, clean);
+      }
+    });
+  };
+
+  document.querySelectorAll('input, textarea, [contenteditable]').forEach(bindEditableElement);
+
+  const worldTop = document.getElementById('worldTop');
+  const outEl = document.getElementById('out');
+
+  const cleanDomTree = root => {
+    if (!root) return;
+    if (root.closest?.('#onQuizApp, #onGraphWin, #onFcModal')) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement?.closest?.('#onQuizApp, #onGraphWin, #onFcModal, .katex')) continue;
+      if (node.nodeValue && (node.nodeValue.includes('$') || node.nodeValue.includes('\\frac') || node.nodeValue.includes('\\times') || node.nodeValue.includes('\\cdot'))) {
+        const cleaned = prettifyMathText(node.nodeValue);
+        if (cleaned !== node.nodeValue) node.nodeValue = cleaned;
+      }
+    }
+    if (root.nodeType === 1) {
+      if (isTextEditable(root)) bindEditableElement(root);
+      root.querySelectorAll?.('input, textarea, [contenteditable]').forEach(bindEditableElement);
+    }
+  };
+
+  if (document.body) {
+    new MutationObserver(muts => {
+      muts.forEach(m => m.addedNodes.forEach(n => {
+        if (n.nodeType === 1) cleanDomTree(n);
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  document.getElementById('copyOut')?.addEventListener('click', () => {
+    const txt = outEl?.innerText || outEl?.textContent || '';
+    if (!txt.trim()) return;
+    const clean = prettifyMathText(txt);
+    navigator.clipboard?.writeText(clean).catch(() => {});
+  }, { capture: true });
+
+  document.getElementById('pinOut')?.addEventListener('click', () => {
+    if (outEl) cleanDomTree(outEl);
+    setTimeout(() => {
+      if (worldTop) cleanDomTree(worldTop);
+    }, 80);
+  }, { capture: true });
+
+  const keyIn = document.getElementById('keyIn');
+  const keyPasteBtn = document.getElementById('keyPasteBtn');
+  const keyCopyBtn = document.getElementById('keyCopyBtn');
+  const keyClearBtn = document.getElementById('keyClearBtn');
+
+  keyPasteBtn?.addEventListener('click', async () => {
+    if (!keyIn) return;
+    try {
+      const txt = prettifyMathText((await navigator.clipboard.readText()).trim());
+      if (txt) {
+        keyIn.value = txt;
+        keyIn.dispatchEvent(new Event('input', { bubbles: true }));
+        appNs.app?.toast?.('API anahtarı yapıştırıldı');
+      } else {
+        appNs.app?.toast?.('Panoda kopyalanmış metin yok');
+      }
+    } catch {
+      keyIn.focus();
+      keyIn.select();
+      appNs.app?.toast?.('Kutunun içine basılı tutup Yapıştır seçin');
+    }
+  });
+
+  keyCopyBtn?.addEventListener('click', async () => {
+    if (!keyIn) return;
+    const val = keyIn.value.trim();
+    if (!val) {
+      appNs.app?.toast?.('Kopyalanacak anahtar yok');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(val);
+      appNs.app?.toast?.('API anahtarı panoya kopyalandı');
+    } catch {
+      keyIn.focus();
+      keyIn.select();
+      try { document.execCommand('copy'); } catch {}
+      appNs.app?.toast?.('API anahtarı panoya kopyalandı');
+    }
+  });
+
+  keyClearBtn?.addEventListener('click', () => {
+    if (!keyIn) return;
+    keyIn.value = '';
+    keyIn.focus();
+    keyIn.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  const mp3Btn = document.getElementById('mp3Btn');
+  const mp3Pop = document.getElementById('mp3Pop');
+  const mp3In = document.getElementById('mp3In');
+  const mp3Pick = document.getElementById('mp3Pick');
+  const mp3Play = document.getElementById('mp3Play');
+  const mp3Next = document.getElementById('mp3Next');
+  const mp3Rew = document.getElementById('mp3Rew');
+  const mp3Fwd = document.getElementById('mp3Fwd');
+  const mp3Seek = document.getElementById('mp3Seek');
+  const mp3CurTime = document.getElementById('mp3CurTime');
+  const mp3DurTime = document.getElementById('mp3DurTime');
+  const mp3Loop = document.getElementById('mp3Loop');
+  const mp3Vol = document.getElementById('mp3Vol');
+  const mp3Track = document.getElementById('mp3Track');
+  const mp3Name = document.getElementById('mp3Name');
+  const presetBox = document.getElementById('adhdPresets');
+
+  if (!mp3Btn || !mp3Pop) return;
+
+  const trackCatalog = {
+    fire: {
+      label: 'Şömine',
+      badge: 'Şömine',
+      synth: 'fire',
+      candidates: [
+        'audio/fire-crackling-with-wind-gusts-gregor-quendel-1-01-03 (1).mp3',
+        'audio/fire-crackling-with-wind-gusts-gregor-quendel-1-01-03.mp3'
+      ]
+    },
+    rain: {
+      label: 'Yağmur',
+      badge: 'Yağmur',
+      synth: 'rain',
+      candidates: [
+        'audio/mixkit-urban-city-ambience-at-night-2678 (compressed by happyscribe.com) (1).wav',
+        'audio/mixkit-urban-city-ambience-at-night-2678 (compressed by happyscribe.com).wav'
+      ]
+    },
+    piano: {
+      label: 'Piyano',
+      badge: 'Piyano',
+      synth: 'piano',
+      candidates: [
+        'audio/pianocafe_kumi-emotional-pianosecret-love-252596 (compressed by happyscribe.com).mp3',
+        'audio/pianocafe_kumi-emotional-pianosecret-love-252596.mp3'
+      ]
+    },
+    symphony: {
+      label: 'Senfoni',
+      badge: 'Senfoni',
+      synth: 'symphony',
+      candidates: [
+        'audio/miromaxmusic-classical-symphony-no-copyright-637830 (compressed by happyscribe.com).mp3',
+        'audio/miromaxmusic-classical-symphony-no-copyright-637830.mp3'
+      ]
+    },
+    lofi: {
+      label: 'Lo-Fi',
+      badge: 'Lo-Fi',
+      synth: 'lofi',
+      candidates: [
+        'audio/danyvin-lofi-chill-638526 (compressed by happyscribe.com).mp3',
+        'audio/danyvin-lofi-chill-638526.mp3'
+      ]
+    },
+    forest: {
+      label: 'Orman',
+      badge: 'Orman',
+      synth: 'forest',
+      candidates: [
+        'audio/forest-ambience-light-birdsong-distant-rooster-vincentmets-1-03-38 (compressed by happyscribe.com).mp3',
+        'audio/forest-ambience-light-birdsong-distant-rooster-vincentmets-1-03-38.mp3'
+      ]
+    },
+    city: {
+      label: 'Şehir',
+      badge: 'Şehir',
+      synth: 'city',
+      candidates: [
+        'audio/city-ambience-distant-emergency-sirens-off-quiet-street-vincentmets-1-02-17 (compressed by happyscribe.com).mp3',
+        'audio/city-ambience-distant-emergency-sirens-off-quiet-street-vincentmets-1-02-17.mp3'
+      ]
+    },
+    gamma40: { label: '40Hz Binaural', badge: '40Hz', synth: 'gamma40' },
+    theta: { label: '6Hz Theta', badge: '6Hz', synth: 'theta' },
+    brown: { label: 'Brown Noise', badge: 'Brown', synth: 'brown' }
+  };
+
+  const audio = new Audio();
+  audio.preload = 'auto';
+  let tracks = [], idx = 0, loop = true, seeking = false, fileActive = false, streamActive = false, filePlaying = false, playToken = 0;
+  let audioCtx = null, synthGain = null, synthTimer = null, synthNodes = [], activePreset = null;
+
+  const savedVol = parseFloat(localStorage.getItem('on-mp3-vol'));
+  const volVal = Number.isFinite(savedVol) ? Math.max(0, Math.min(1, savedVol)) : 0.6;
+  audio.volume = volVal;
+  if (mp3Vol) mp3Vol.value = String(volVal);
+
+  const ensureAudioCtx = () => {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  };
+
+  const stopSynth = () => {
+    if (synthTimer) { clearInterval(synthTimer); synthTimer = null; }
+    synthNodes.forEach(n => {
+      try { n.stop?.(); } catch {}
+      try { n.disconnect?.(); } catch {}
+    });
+    synthNodes = [];
+    if (synthGain) {
+      try { synthGain.disconnect(); } catch {}
+      synthGain = null;
+    }
+    streamActive = false;
+  };
+
+  const fmtTime = sec => {
+    if (!Number.isFinite(sec) || sec < 0) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const syncSeekUI = () => {
+    const hasFileLoaded = filePlaying && Number.isFinite(audio.duration) && audio.duration > 0;
+    if (mp3Rew) mp3Rew.disabled = !hasFileLoaded || audio.paused;
+    if (mp3Fwd) mp3Fwd.disabled = !hasFileLoaded || audio.paused;
+    if (mp3Seek) {
+      mp3Seek.disabled = !hasFileLoaded;
+      if (hasFileLoaded) {
+        mp3Seek.max = String(audio.duration);
+        if (!seeking) mp3Seek.value = String(Math.min(audio.currentTime || 0, audio.duration));
+      } else if (!seeking) {
+        mp3Seek.value = '0';
+      }
+    }
+    if (mp3CurTime) mp3CurTime.textContent = hasFileLoaded ? fmtTime(seeking ? parseFloat(mp3Seek?.value || '0') : audio.currentTime) : (streamActive ? '∞' : '00:00');
+    if (mp3DurTime) mp3DurTime.textContent = hasFileLoaded ? fmtTime(audio.duration) : (streamActive ? 'Canlı' : '00:00');
+  };
+
+  const seekTo = sec => {
+    const dur = Number.isFinite(audio.duration) ? audio.duration : 0;
+    const clamped = dur > 0 ? Math.max(0, Math.min(sec, dur)) : Math.max(0, sec);
+    audio.currentTime = clamped;
+    if (mp3Seek) mp3Seek.value = String(clamped);
+    if (mp3CurTime) mp3CurTime.textContent = fmtTime(clamped);
+  };
+
+  const syncMp3 = () => {
+    const cur = tracks[idx];
+    const isPlaying = activePreset
+      ? (streamActive || filePlaying)
+      : (!audio.paused && !!cur);
+
+    mp3Btn.classList.toggle('playing', isPlaying);
+
+    if (activePreset && trackCatalog[activePreset]) {
+      const meta = trackCatalog[activePreset];
+      if (mp3Track) mp3Track.textContent = meta.label;
+      if (mp3Name) {
+        mp3Name.hidden = false;
+        mp3Name.textContent = meta.badge;
+      }
+      if (mp3Play) {
+        mp3Play.disabled = false;
+        mp3Play.textContent = isPlaying ? 'Durdur' : 'Oynat';
+      }
+    } else if (fileActive && cur) {
+      if (mp3Track) mp3Track.textContent = cur.name;
+      if (mp3Name) {
+        mp3Name.hidden = false;
+        mp3Name.textContent = cur.name.replace(/\.[^.]+$/, '');
+      }
+      if (mp3Play) {
+        mp3Play.disabled = false;
+        mp3Play.textContent = !audio.paused ? 'Duraklat' : 'Oynat';
+      }
+    } else {
+      if (mp3Track) mp3Track.textContent = 'Seçim yapılmadı';
+      if (mp3Name) {
+        mp3Name.hidden = true;
+        mp3Name.textContent = '';
+      }
+      if (mp3Play) {
+        mp3Play.disabled = !tracks.length;
+        mp3Play.textContent = 'Oynat';
+      }
+    }
+
+    if (mp3Next) mp3Next.hidden = tracks.length <= 1;
+    if (mp3Loop) mp3Loop.textContent = loop ? 'Döngü: Açık' : 'Döngü: Kapalı';
+    syncSeekUI();
+  };
+
+  const startInstantSynth = synthType => {
+    stopSynth();
+    const ctx = ensureAudioCtx();
+    if (!ctx) return false;
+
+    synthGain = ctx.createGain();
+    synthGain.gain.value = (parseFloat(mp3Vol?.value || '0.6') || 0.6) * 0.35;
+    synthGain.connect(ctx.destination);
+
+    const sr = ctx.sampleRate;
+    const len = sr * 3;
+
+    if (synthType === 'brown' || synthType === 'rain' || synthType === 'forest' || synthType === 'city' || synthType === 'fire') {
+      const buf = ctx.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = buf.getChannelData(ch);
+        if (synthType === 'brown') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            data[i] = (last + 0.02 * w) / 1.02;
+            last = data[i];
+            data[i] *= 2.4;
+          }
+        } else if (synthType === 'rain') {
+          let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + w * 0.0555179;
+            b1 = 0.99332 * b1 + w * 0.0750759;
+            b2 = 0.96900 * b2 + w * 0.1538520;
+            b3 = 0.86650 * b3 + w * 0.3104856;
+            b4 = 0.55000 * b4 + w * 0.5329522;
+            b5 = -0.7616 * b5 - w * 0.0168980;
+            const drop = Math.random() < 0.0009 ? (Math.random() * 2 - 1) * 0.22 : 0;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.09 + drop;
+            b6 = w * 0.115926;
+          }
+        } else if (synthType === 'forest') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.04 * w) / 1.04;
+            const breeze = 0.65 + 0.35 * Math.sin((2 * Math.PI * i) / (sr * 3.5));
+            data[i] = last * 1.45 * breeze;
+          }
+        } else if (synthType === 'city') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.07 * w) / 1.07;
+            const hum = 0.75 + 0.25 * Math.sin((2 * Math.PI * i) / (sr * 2.8));
+            data[i] = last * 1.55 * hum;
+          }
+        } else {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.03 * w) / 1.03;
+            const crackle = Math.random() < 0.0004 ? (Math.random() * 2 - 1) * 0.3 : 0;
+            data[i] = last * 1.5 + crackle;
+          }
+        }
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(synthGain);
+      src.start();
+      synthNodes.push(src);
+    } else if (synthType === 'gamma40' || synthType === 'theta') {
+      const baseFreq = synthType === 'gamma40' ? 200 : 174;
+      const beatHz = synthType === 'gamma40' ? 40 : 6;
+      const merger = ctx.createChannelMerger(2);
+      const oscL = ctx.createOscillator();
+      const oscR = ctx.createOscillator();
+      oscL.type = 'sine';
+      oscR.type = 'sine';
+      oscL.frequency.value = baseFreq;
+      oscR.frequency.value = baseFreq + beatHz;
+
+      const gL = ctx.createGain();
+      const gR = ctx.createGain();
+      gL.gain.value = 0.45;
+      gR.gain.value = 0.45;
+
+      oscL.connect(gL);
+      oscR.connect(gR);
+      gL.connect(merger, 0, 0);
+      gR.connect(merger, 0, 1);
+      merger.connect(synthGain);
+
+      oscL.start();
+      oscR.start();
+      synthNodes.push(oscL, oscR, gL, gR, merger);
+    } else {
+      const notes = synthType === 'piano'
+        ? [261.63, 329.63, 392.00, 493.88, 523.25]
+        : synthType === 'symphony'
+        ? [196.00, 293.66, 392.00, 493.88, 587.33]
+        : [220.00, 261.63, 329.63, 392.00, 440.00];
+      let step = 0;
+      const playTone = () => {
+        if (!synthGain || !ctx || ctx.state === 'closed') return;
+        const freq = notes[step % notes.length];
+        step++;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.type = synthType === 'symphony' ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        env.gain.setValueAtTime(0.0001, now);
+        env.gain.linearRampToValueAtTime(0.14, now + 0.06);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+        osc.connect(env);
+        env.connect(synthGain);
+        osc.start(now);
+        osc.stop(now + 1.85);
+      };
+      playTone();
+      synthTimer = setInterval(playTone, 1700);
+    }
+
+    streamActive = true;
+    syncMp3();
     return true;
+  };
+
+  const upgradeWithFileIfAvailable = async (meta, token) => {
+    if (!meta.candidates) return;
+    for (const rawUrl of meta.candidates) {
+      if (token !== playToken) return;
+      const url = encodeURI(rawUrl);
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (!blob || blob.size < 64 || token !== playToken) continue;
+        const blobUrl = URL.createObjectURL(blob);
+        audio.pause();
+        audio.src = blobUrl;
+        audio.loop = loop;
+        await audio.play();
+        if (token !== playToken) {
+          audio.pause();
+          return;
+        }
+        filePlaying = true;
+        stopSynth();
+        syncMp3();
+        return;
+      } catch {}
+    }
+  };
+
+  const startPreset = type => {
+    playToken++;
+    const token = playToken;
+    fileActive = false;
+    filePlaying = false;
+    audio.pause();
+
+    const meta = trackCatalog[type];
+    if (!meta) return;
+
+    activePreset = type;
+    presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+    presetBox?.querySelector(`[data-snd="${type}"]`)?.classList.add('active-snd');
+
+    if (meta.synth) {
+      startInstantSynth(meta.synth);
+    } else {
+      syncMp3();
+    }
+
+    if (meta.candidates) {
+      upgradeWithFileIfAvailable(meta, token);
+    }
+  };
+
+  const playTrack = (i, auto = true) => {
+    if (!tracks.length) return;
+    playToken++;
+    stopSynth();
+    fileActive = true;
+    filePlaying = true;
+    activePreset = null;
+    presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+    idx = (i + tracks.length) % tracks.length;
+    audio.src = tracks[idx].url;
+    audio.loop = loop && tracks.length === 1;
+    if (mp3Seek) mp3Seek.value = '0';
+    if (mp3CurTime) mp3CurTime.textContent = '00:00';
+    if (mp3DurTime) mp3DurTime.textContent = '00:00';
+    if (auto) audio.play().catch(() => {});
+    syncMp3();
+  };
+
+  presetBox?.querySelectorAll('[data-snd]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const snd = btn.dataset.snd;
+      if (!snd) return;
+      if (activePreset === snd) {
+        playToken++;
+        stopSynth();
+        filePlaying = false;
+        audio.pause();
+        activePreset = null;
+        btn.classList.remove('active-snd');
+        syncMp3();
+      } else {
+        startPreset(snd);
+      }
+    });
   });
-  if (hit) redraw();
-}
 
-cv.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'pen') st.penSeen = true;
-  const fingerPans = e.pointerType === 'touch' && (st.settings.penOnly || st.penSeen);
-  touches.set(e.pointerId, e.clientY);
-  if (fingerPans || touches.size > 1) {           // parmak = kaydırma (avuç içi reddi)
-    if (cur) { cur = null; redraw(); }
-    panning = { y: e.clientY, s: st.scrollY, id: e.pointerId }; return;
-  }
-  if (e.button === 2 || e.buttons === 32 || st.tool === 'erase') { // kalemin silgi ucu da çalışır
-    cv.setPointerCapture(e.pointerId); erasing = true; eraseSnap = st.strokes.slice();
-    const [x, y] = pos(e); eraseAt(x, y); return;
-  }
-  cv.setPointerCapture(e.pointerId);
-  const [x, y] = pos(e);
-  cur = { id: uid(), color: st.color, w: st.tool === 'hl' ? 18 : st.width, hl: st.tool === 'hl', pts: [[round(x), round(y), pressure(e)]] };
-  redraw();
-});
-cv.addEventListener('pointermove', e => {
-  if (panning) {
-    if (e.pointerId !== panning.id) return;
-    st.scrollY = Math.max(0, panning.s - (e.clientY - panning.y)); redraw(); return;
-  }
-  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-  if (erasing) { for (const ev of evs) { const [x, y] = pos(ev); eraseAt(x, y); } return; }
-  if (!cur) return;
-  const from = cur.pts.length;
-  for (const ev of evs) {
-    const [x, y] = pos(ev), l = cur.pts[cur.pts.length - 1];
-    if ((x - l[0]) ** 2 + (y - l[1]) ** 2 < 0.6) continue;
-    cur.pts.push([round(x), round(y), pressure(ev)]);
-  }
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (cur.hl) redraw(); else drawStroke(ctx, cur, st.scrollY, from); // artımlı çizim = düşük gecikme
-});
-function endPointer(e) {
-  touches.delete(e.pointerId);
-  if (panning && e.pointerId === panning.id) { panning = null; return; }
-  if (erasing) {
-    erasing = false;
-    if (eraseSnap && eraseSnap.length !== st.strokes.length) { st.undo.push(eraseSnap); st.redo = []; syncUndo(); scheduleSave(); }
-    eraseSnap = null; return;
-  }
-  if (!cur) return;
-  bounds(cur); pushUndo(); st.strokes.push(cur); cur = null; redraw(); scheduleSave();
-}
-cv.addEventListener('pointerup', endPointer);
-cv.addEventListener('pointercancel', endPointer);
-cv.addEventListener('contextmenu', e => e.preventDefault());
-cv.addEventListener('wheel', e => { e.preventDefault(); st.scrollY = Math.max(0, st.scrollY + e.deltaY); redraw(); }, { passive: false });
+  mp3Btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    ensureAudioCtx();
+    const open = mp3Pop.hidden;
+    document.querySelectorAll('.pop').forEach(p => { if (p !== mp3Pop) p.hidden = true; });
+    mp3Pop.hidden = !open;
+    if (!mp3Pop.hidden) {
+      const r = mp3Btn.getBoundingClientRect();
+      const popW = Math.min(284, window.innerWidth - 16);
+      mp3Pop.style.top = (r.bottom + 8) + 'px';
+      mp3Pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - popW - 8)) + 'px';
+      syncSeekUI();
+    }
+  }, { capture: true });
 
-/* ================= Araç çubuğu ================= */
-$('swatches').innerHTML = COLORS.map((c, i) => `<button class="sw${i ? '' : ' on'}" data-c="${c}" title="Renk"><i style="background:${c}"></i></button>`).join('');
-$('widths').innerHTML = WIDTHS.map((w, i) => `<button class="sw wd${i === 1 ? ' on' : ''}" data-w="${w}" title="Kalınlık"><i style="width:${4 + i * 4}px;height:${4 + i * 4}px"></i></button>`).join('');
-function setTool(t) {
-  st.tool = t;
-  for (const [id, n] of [['tPen', 'pen'], ['tHl', 'hl'], ['tEr', 'erase']]) $(id).classList.toggle('on', t === n);
-  cv.style.cursor = t === 'erase' ? 'cell' : 'crosshair';
-}
-$('tPen').onclick = () => setTool('pen'); $('tHl').onclick = () => setTool('hl'); $('tEr').onclick = () => setTool('erase');
-$('swatches').onclick = e => { const b = e.target.closest('[data-c]'); if (!b) return; st.color = b.dataset.c;
-  document.querySelectorAll('#swatches .sw').forEach(x => x.classList.toggle('on', x === b)); if (st.tool === 'erase') setTool('pen'); };
-$('widths').onclick = e => { const b = e.target.closest('[data-w]'); if (!b) return; st.width = +b.dataset.w;
-  document.querySelectorAll('#widths .sw').forEach(x => x.classList.toggle('on', x === b)); };
-function syncUndo() { $('undo').style.opacity = st.undo.length ? 1 : .35; $('redo').style.opacity = st.redo.length ? 1 : .35; }
-function undo() { if (!st.undo.length) return; st.redo.push(st.strokes); st.strokes = st.undo.pop(); syncUndo(); redraw(); scheduleSave(); }
-function redo() { if (!st.redo.length) return; st.undo.push(st.strokes); st.strokes = st.redo.pop(); syncUndo(); redraw(); scheduleSave(); }
-$('undo').onclick = undo; $('redo').onclick = redo;
-const BGS = ['grid', 'dots', 'plain'];
-$('bgBtn').onclick = () => { st.bg = BGS[(BGS.indexOf(st.bg) + 1) % 3]; redraw(); scheduleSave(); };
-document.addEventListener('keydown', e => {
-  if (e.target.matches('input,textarea,select')) return;
-  const k = e.key.toLowerCase();
-  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-  else if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); }
-  else if (k === 'p') setTool('pen'); else if (k === 'h') setTool('hl'); else if (k === 'e') setTool('erase');
-  else if (k === 'escape') { closeAI(); $('dlg').classList.remove('on'); }
-});
-
-/* ================= Panel / odak modu ================= */
-const app = $('app');
-const narrow = () => matchMedia('(max-width:760px)').matches;
-function setFocus(on) { app.classList.toggle('focus', on); LS.set('on-focus', on); }
-$('toggleSide').onclick = () => { setFocus(!app.classList.contains('focus')); if (!app.classList.contains('focus')) closeAI(); };
-$('hideSide').onclick = () => setFocus(true);
-
-/* ================= Klasörler & notlar ================= */
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtDate = t => new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-function renderSide() {
-  const { folders, notes } = st.index;
-  $('folders').innerHTML = folders.map(f => `<button class="item${f.id === st.folderId ? ' on' : ''}" data-f="${f.id}">
-    <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-    <span class="t">${esc(f.name)}</span><small>${notes.filter(n => n.folderId === f.id).length}</small></button>`).join('');
-  const list = notes.filter(n => n.folderId === st.folderId).sort((a, b) => b.updated - a.updated);
-  $('notes').innerHTML = `<div class="lbl">Notlar</div>` + (list.length ? list.map(n => `<button class="item${n.id === st.noteId ? ' on' : ''}" data-n="${n.id}">
-    <span class="t">${esc(n.title || 'Adsız not')}</span><small>${fmtDate(n.updated)}</small></button>`).join('')
-    : `<p class="lbl" style="display:block">Bu derste henüz not yok.</p>`);
-}
-$('folders').onclick = e => { const b = e.target.closest('[data-f]'); if (!b) return; st.folderId = b.dataset.f; LS.set('on-folder', st.folderId); renderSide(); };
-$('notes').onclick = async e => { const b = e.target.closest('[data-n]'); if (!b) return; await openNote(b.dataset.n); if (narrow()) setFocus(true); };
-$('addFolderBtn').onclick = () => { $('folderRow').classList.toggle('on'); $('folderIn').focus(); };
-async function addFolder() {
-  const name = $('folderIn').value.trim(); if (!name) return;
-  const f = { id: uid(), name }; st.index.folders.push(f); st.folderId = f.id;
-  $('folderIn').value = ''; $('folderRow').classList.remove('on');
-  await DB.set('index', st.index); renderSide();
-}
-$('folderOk').onclick = addFolder;
-$('folderIn').onkeydown = e => { if (e.key === 'Enter') addFolder(); };
-$('newNote').onclick = () => newNote();
-async function newNote() {
-  await saveNow();
-  const n = { id: uid(), folderId: st.folderId, title: 'Adsız not', updated: Date.now() };
-  st.index.notes.push(n); await DB.set('index', st.index);
-  await DB.set('note:' + n.id, { strokes: [], bg: st.bg });
-  await openNote(n.id); $('title').select();
-}
-async function openNote(id) {
-  await saveNow();
-  const meta = st.index.notes.find(n => n.id === id); if (!meta) return;
-  const d = (await DB.get('note:' + id)) || { strokes: [], bg: 'grid' };
-  st.noteId = id; st.strokes = d.strokes || []; st.bg = d.bg || 'grid'; st.scrollY = 0; st.undo = []; st.redo = [];
-  st.strokes.forEach(s => { if (s.minY == null) bounds(s); });
-  $('title').value = meta.title; LS.set('on-note', id); syncUndo(); renderSide(); redraw();
-}
-$('title').oninput = () => { const n = st.index.notes.find(n => n.id === st.noteId); if (n) { n.title = $('title').value; scheduleSave(); } };
-$('title').onkeydown = e => { if (e.key === 'Enter') $('title').blur(); };
-
-let saveT = null, dirty = false;
-function scheduleSave() { dirty = true; $('saved').textContent = 'Kaydediliyor…'; clearTimeout(saveT); saveT = setTimeout(saveNow, 700); }
-async function saveNow() {
-  clearTimeout(saveT); if (!dirty || !st.noteId) return; dirty = false;
-  const n = st.index.notes.find(n => n.id === st.noteId); if (n) n.updated = Date.now();
-  await DB.set('note:' + st.noteId, { strokes: st.strokes, bg: st.bg });
-  await DB.set('index', st.index);
-  $('saved').textContent = 'Kaydedildi'; renderSide();
-}
-addEventListener('pagehide', saveNow);
-document.addEventListener('visibilitychange', () => document.hidden && saveNow());
-
-/* ================= Ayarlar ================= */
-function openSettings() {
-  const s = st.settings; $('keyIn').value = s.key; $('testMsg').textContent = '';
-  if (![...$('modelIn').options].some(o => o.value === s.model)) $('modelIn').add(new Option(s.model + ' (otomatik seçildi)', s.model));
-  $('modelIn').value = s.model; $('modelCustom').value = s.custom; $('penOnly').checked = s.penOnly;
-  $('dlg').classList.add('on'); setTimeout(() => $('keyIn').focus(), 50);
-}
-$('openSettings').onclick = openSettings;
-$('setCancel').onclick = () => $('dlg').classList.remove('on');
-const readForm = () => ({ key: $('keyIn').value.replace(/\s+/g, ''), model: $('modelIn').value, custom: $('modelCustom').value.trim(), penOnly: $('penOnly').checked });
-$('setForm').onsubmit = e => {
-  e.preventDefault();
-  st.settings = readForm(); LS.set('on-settings', st.settings); $('dlg').classList.remove('on');
-};
-$('testBtn').onclick = async () => {
-  const s = readForm(), m = $('testMsg');
-  if (!s.key) { m.textContent = 'Önce anahtarı yapıştır.'; return; }
-  m.textContent = 'Deneniyor…';
-  try {
-    const used = await gemini(s, [{ text: 'Sadece "tamam" yaz.' }]);
-    st.settings = s; LS.set('on-settings', s);
-    m.textContent = `Bağlantı çalışıyor ✓ (model: ${used.model}). Ayarlar kaydedildi.`;
-  } catch (err) { m.textContent = err.message; }
-};
-
-/* ================= Gemini ================= */
-const SYS = `Sen mühendislik ve sayısal dersler için sabırlı bir öğretmen asistanısın. Kullanıcı DEHB'li bir öğrenci.
-Kurallar: Türkçe yaz. Kısa paragraflar, numaralı adımlar. Her adımda tek fikir. Tüm matematiği LaTeX ile yaz:
-satır içi $...$, blok $$...$$. Gereksiz giriş/kapanış cümlesi yazma. Emin olmadığın el yazısı kısımları [?] ile işaretle.`;
-const ACTIONS = [
-  { id: 'ocr', t: 'Dijitale çevir', d: 'El yazısı → metin + LaTeX', p: 'Bu el yazısı notu birebir dijital metne çevir. Başlıkları ### ile, formülleri LaTeX ile yaz. Yorum ekleme.' },
-  { id: 'check', t: 'Çözümü kontrol et', d: 'Hatalı adımı bul', p: 'Bu sayfadaki çözümü adım adım kontrol et. İlk hatalı adımı açıkça belirt, nedenini 1-2 cümleyle açıkla, doğrusunu göster. Hata yoksa "Çözüm doğru" de ve kısa doğrulama ver.' },
-  { id: 'steps', t: 'Adım adım çöz', d: 'Soruyu baştan çöz', p: 'Sayfadaki soruyu/problemi tespit et ve numaralı, küçük adımlarla çöz. En sonda sonucu kutu içinde ($\\boxed{}$) ver.' },
-  { id: 'sum', t: 'Özet + kavramlar', d: '5 madde, ezber kartı', p: 'Bu sayfayı en fazla 5 maddelik bir özet ve altında "Anahtar formüller" listesi olarak çıkar. Sonuna kendimi test etmem için 2 kısa soru ekle (cevapları gizlemeden en altta ver).' }
-];
-$('acts').innerHTML = ACTIONS.map(a => `<button class="act" data-a="${a.id}"><b>${a.t}</b><span>${a.d}</span></button>`).join('');
-function openAI() { $('ai').classList.add('on'); if (narrow()) setFocus(true); }
-function closeAI() { $('ai').classList.remove('on'); }
-$('aiOpen').onclick = () => $('ai').classList.contains('on') ? closeAI() : openAI();
-$('aiClose').onclick = closeAI;
-
-// Notun çizgi bölgesini kırpıp PNG'ye çevir
-function exportPNG() {
-  if (!st.strokes.length) return null;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const s of st.strokes) for (const p of s.pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
-  const pad = 24; x0 -= pad; y0 -= pad; x1 += pad; y1 += pad;
-  const w = x1 - x0, h = y1 - y0, sc = Math.min(2, 2400 / Math.max(w, h));
-  const c = document.createElement('canvas'); c.width = Math.ceil(w * sc); c.height = Math.ceil(h * sc);
-  const g = c.getContext('2d'); g.setTransform(sc, 0, 0, sc, -x0 * sc, 0);
-  g.fillStyle = '#03010D'; g.fillRect(x0, 0, w, h);
-  for (const s of st.strokes) { g.save(); g.translate(0, -y0); drawStroke(g, s, 0); g.restore(); }
-  return c.toDataURL('image/png').split(',')[1];
-}
-// Eski kayıtlarda kalan, artık yeni anahtarlara kapalı 2.x modellerini taşı
-if (/^gemini-(1|2)\./.test(st.settings.model)) { st.settings.model = 'gemini-3.8-flash'; LS.set('on-settings', st.settings); }
-if (/^gemini-(1|2)\./.test(st.settings.custom || '')) { st.settings.custom = ''; LS.set('on-settings', st.settings); }
-
-const API = 'https://generativelanguage.googleapis.com/v1beta/';
-function friendly(status, msg) {
-  if (status === 400 && /API key|API_KEY/i.test(msg)) return 'API anahtarı geçersiz görünüyor. AI Studio\'dan kopyalarken eksik kalmış olabilir.';
-  if (status === 403) return 'Anahtarın bu API\'ye izni yok. AI Studio\'da yeni bir anahtar oluşturmayı dene.';
-  if (status === 429) return 'Ücretsiz kota doldu ya da çok hızlı istek gitti. Bir dakika bekleyip tekrar dene.';
-  if (status >= 500) return 'Google tarafında geçici bir sorun var. Biraz sonra tekrar dene.';
-  return `Hata (${status}): ${msg}`;
-}
-// İstek hiç gidemediyse nedenini tahmin et
-function diagnose() {
-  let framed = false; try { framed = window.self !== window.top; } catch { framed = true; }
-  if (!navigator.onLine) return 'Cihaz çevrimdışı görünüyor. İnternete bağlanıp tekrar dene.';
-  if (framed) return 'Uygulama bir önizleme penceresinin içinde açılmış; önizlemeler internete çıkışı engeller. Dosyayı indirip Chrome\'da kendi sekmesinde aç (ya da Netlify Drop ile yayınla).';
-  if (/^(file|content):$/.test(location.protocol)) return 'Dosya doğrudan cihazdan açılmış ve tarayıcı bu durumda isteği engelliyor. En kolay çözüm: app.netlify.com/drop adresine dosyayı sürükleyip verdiği https linkinden aç.';
-  return 'Google\'a ulaşılamadı. Reklam engelleyici, VPN veya okul/iş ağı generativelanguage.googleapis.com adresini engelliyor olabilir; başka bir ağda ya da gizli sekmede dene.';
-}
-// Anahtarın erişebildiği, görüntü okuyabilen bir flash modeli bul
-async function pickModel(key) {
-  const r = await fetch(API + 'models?pageSize=200', { headers: { 'x-goog-api-key': key } });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(friendly(r.status, j.error?.message || ''));
-  const names = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
-    .map(m => m.name.replace('models/', ''))
-    .filter(n => /^gemini-/.test(n) && !/(tts|image|live|audio|embedding|robotics|computer)/.test(n));
-  const score = n => (/flash/.test(n) ? 1000 : 0) - (/lite/.test(n) ? 100 : 0) - (/preview|exp/.test(n) ? 50 : 0) + (parseFloat(n.slice(7)) || 0);
-  names.sort((a, b) => score(b) - score(a));
-  if (!names.length) throw new Error('Bu anahtarla kullanılabilen bir Gemini modeli bulunamadı.');
-  return names[0];
-}
-async function gemini(s, parts) {
-  if (location.protocol === 'file:') console.warn('Dosyadan açıldı; sorun olursa bir sunucudan açın.');
-  let viaQuery = false;   // başlıkla olmazsa anahtarı adres parametresiyle dene
-  const body = JSON.stringify({ systemInstruction: { parts: [{ text: SYS }] }, contents: [{ role: 'user', parts }], generationConfig: { temperature: 0.2 } });
-  const call = model => fetch(`${API}models/${encodeURIComponent(model)}:generateContent` + (viaQuery ? `?key=${encodeURIComponent(s.key)}` : ''), {
-    method: 'POST',
-    headers: viaQuery ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': s.key },
-    body
+  mp3Pick?.addEventListener('click', () => mp3In?.click());
+  mp3In?.addEventListener('change', () => {
+    const files = [...(mp3In.files || [])];
+    if (!files.length) return;
+    tracks.forEach(t => URL.revokeObjectURL(t.url));
+    tracks = files.map(f => ({ name: f.name, url: URL.createObjectURL(f) }));
+    playTrack(0, true);
+    mp3In.value = '';
   });
-  let model = s.custom || s.model, r;
-  try { r = await call(model); }
-  catch {
-    viaQuery = true;
-    try { r = await call(model); } catch { throw new Error(diagnose()); }
-  }
-  if (r.status === 404) {            // model kapalı/yok → otomatik yedek
-    model = await pickModel(s.key);
-    r = await call(model);
-    if (r.ok && !s.custom) { s.model = model; LS.set('on-settings', s); }
-  }
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(friendly(r.status, j.error?.message || ''));
-  const cand = j.candidates?.[0];
-  if (!cand) throw new Error('Yanıt engellendi ya da boş döndü' + (j.promptFeedback?.blockReason ? ` (${j.promptFeedback.blockReason})` : '') + '.');
-  return { model, text: (cand.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('').trim() };
-}
-let lastText = '';
-async function runAI(prompt, btn) {
-  const out = $('out');
-  if (!st.settings.key) { out.innerHTML = `<p class="hint">Önce Ayarlar'dan Gemini API anahtarını ekle.</p>`; openSettings(); return; }
-  await saveNow();
-  const img = exportPNG();
-  if (!img) { out.innerHTML = `<p class="hint">Sayfa boş — önce bir şeyler yaz.</p>`; return; }
-  document.querySelectorAll('.act').forEach(b => b.classList.toggle('on', b === btn));
-  out.innerHTML = `<p class="hint"><span class="dots"><i></i><i></i><i></i></span> Gemini sayfayı okuyor…</p>`;
-  try {
-    const res = await gemini(st.settings, [{ inline_data: { mime_type: 'image/png', data: img } }, { text: `Not başlığı: ${$('title').value}\n\n${prompt}` }]);
-    lastText = res.text || 'Boş yanıt döndü.';
-    out.innerHTML = md(lastText);
-    if (window.renderMathInElement) renderMathInElement(out, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }, { left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }], throwOnError: false });
-  } catch (err) {
-    out.innerHTML = `<p class="hint">Bir sorun oldu: ${esc(err.message)}</p>`;
-  }
-}
-// Hafif markdown: başlık, kalın, liste, kod — LaTeX'e dokunmaz
-function md(t) {
-  const blocks = []; t = t.replace(/\$\$[\s\S]+?\$\$/g, m => `\u0000${blocks.push(m) - 1}\u0000`);
-  let h = esc(t)
-    .replace(/^#{3,6} (.*)$/gm, '<h4>$1</h4>').replace(/^#{1,2} (.*)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`$]+)`/g, '<code>$1</code>')
-    .replace(/^\s*(?:[-*]|\d+\.) (.*)$/gm, '<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, '<ul>$1</ul>')
-    .split(/\n{2,}/).map(p => /^\s*<(h\d|ul)/.test(p) ? p : `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-  return h.replace(/\u0000(\d+)\u0000/g, (_, i) => esc(blocks[i]));
-}
-$('acts').onclick = e => { const b = e.target.closest('[data-a]'); if (b) runAI(ACTIONS.find(a => a.id === b.dataset.a).p, b); };
-$('ask').onsubmit = e => { e.preventDefault(); const q = $('askIn').value.trim(); if (q) runAI(q, null); };
-$('copyOut').onclick = async () => { try { await navigator.clipboard.writeText(lastText); $('copyOut').textContent = 'Kopyalandı'; setTimeout(() => $('copyOut').textContent = 'Sonucu kopyala', 1500); } catch {} };
+  mp3Play?.addEventListener('click', () => {
+    if (activePreset) {
+      const isCurrentlyOn = streamActive || (filePlaying && !audio.paused);
+      if (isCurrentlyOn) {
+        playToken++;
+        stopSynth();
+        filePlaying = false;
+        audio.pause();
+        activePreset = null;
+        presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+      } else {
+        startPreset(activePreset);
+      }
+      syncMp3();
+      return;
+    }
+    if (!tracks.length) return;
+    fileActive = true;
+    filePlaying = true;
+    audio.paused ? audio.play().catch(() => {}) : audio.pause();
+    syncMp3();
+  });
+  mp3Next?.addEventListener('click', () => playTrack(idx + 1, true));
+  mp3Rew?.addEventListener('click', () => {
+    if (audio.paused) return;
+    seekTo((audio.currentTime || 0) - 10);
+  });
+  mp3Fwd?.addEventListener('click', () => {
+    if (audio.paused) return;
+    seekTo((audio.currentTime || 0) + 10);
+  });
+  mp3Seek?.addEventListener('pointerdown', () => { seeking = true; });
+  mp3Seek?.addEventListener('input', () => {
+    if (mp3CurTime && mp3Seek) mp3CurTime.textContent = fmtTime(parseFloat(mp3Seek.value));
+  });
+  mp3Seek?.addEventListener('change', () => {
+    if (mp3Seek) seekTo(parseFloat(mp3Seek.value));
+    seeking = false;
+  });
+  window.addEventListener('pointerup', () => { seeking = false; });
 
-/* ================= Açılış ================= */
-(async () => {
-  st.index = (await DB.get('index')) || { folders: [], notes: [] };
-  if (!st.index.folders.length) {
-    const f = { id: uid(), name: 'Genel' }; st.index.folders.push(f); await DB.set('index', st.index);
-  }
-  st.folderId = LS.get('on-folder', null);
-  if (!st.index.folders.some(f => f.id === st.folderId)) st.folderId = st.index.folders[0].id;
-  const last = LS.get('on-note', null);
-  if (st.index.notes.some(n => n.id === last)) await openNote(last); else await newNote();
-  setFocus(LS.get('on-focus', false) || narrow());
-  syncUndo(); renderSide();
-})();
+  mp3Loop?.addEventListener('click', () => {
+    loop = !loop;
+    audio.loop = loop;
+    syncMp3();
+  });
+  mp3Vol?.addEventListener('input', () => {
+    const v = parseFloat(mp3Vol.value) || 0;
+    audio.volume = v;
+    if (synthGain) synthGain.gain.value = v * 0.35;
+    try { localStorage.setItem('on-mp3-vol', String(v)); } catch {}
+  });
+  audio.addEventListener('loadedmetadata', syncSeekUI);
+  audio.addEventListener('durationchange', syncSeekUI);
+  audio.addEventListener('timeupdate', syncSeekUI);
+  audio.addEventListener('play', syncMp3);
+  audio.addEventListener('pause', syncMp3);
+  audio.addEventListener('ended', () => {
+    if (fileActive && tracks.length > 1 && (loop || idx + 1 < tracks.length)) playTrack(idx + 1, true);
+    else { filePlaying = false; syncMp3(); }
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!mp3Pop.hidden && !mp3Pop.contains(e.target) && !mp3Btn.contains(e.target)) mp3Pop.hidden = true;
+  });
 
-/* ================= Çevrimdışı çalışma (PWA) ================= */
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const spenSel = document.getElementById('spenAction');
+  const spenBadge = document.getElementById('spenTestBadge');
+
+  const getSpenAct = () => localStorage.getItem('on-spen-action') || appNs.settings?.spenAction || 'eraser-hold';
+  const setSpenAct = val => {
+    try { localStorage.setItem('on-spen-action', val); } catch {}
+    if (appNs.settings) { appNs.settings.spenAction = val; appNs.saveSettings?.(); }
+  };
+  if (spenSel) spenSel.value = getSpenAct();
+
+  document.getElementById('openSettings')?.addEventListener('click', () => {
+    if (spenSel) setTimeout(() => { spenSel.value = getSpenAct(); }, 10);
+  });
+  spenSel?.addEventListener('change', () => {
+    setSpenAct(spenSel.value);
+    appNs.app?.toast?.('S Pen tuş görevi kaydedildi');
+  });
+  document.getElementById('setForm')?.addEventListener('submit', () => {
+    if (spenSel) setSpenAct(spenSel.value);
+  });
+
+  const activeTool = () => document.querySelector('#toolBtns [data-tool].on')?.dataset.tool || 'pen';
+  const switchTool = t => {
+    if (!t || activeTool() === t) return;
+    const btn = document.querySelector(`#toolBtns [data-tool="${t}"]`);
+    if (!btn) return;
+    btn.click();
+    const pop = document.getElementById('toolPop');
+    if (pop) pop.hidden = true;
+  };
+
+  let barrelDown = false, prevTool = null, lastToggleAt = 0;
+
+  const handleBarrelDown = (source = '') => {
+    if (spenBadge) {
+      spenBadge.classList.add('ok');
+      spenBadge.textContent = `Algılandı! (${source}) → Seçili görev aktif`;
+    }
+    const act = getSpenAct();
+    if (act === 'none') return;
+
+    if (act === 'eraser-hold' || act === 'lasso-hold') {
+      const target = act === 'eraser-hold' ? 'eraser' : 'lasso';
+      const cur = activeTool();
+      if (cur !== target) { prevTool = cur; switchTool(target); }
+    } else {
+      const now = Date.now();
+      if (now - lastToggleAt < 250) return;
+      lastToggleAt = now;
+      if (act === 'eraser-toggle') {
+        switchTool(activeTool() === 'eraser' ? 'pen' : 'eraser');
+      } else if (act === 'highlighter-toggle') {
+        switchTool(activeTool() === 'highlighter' ? 'pen' : 'highlighter');
+      } else if (act === 'undo') {
+        document.getElementById('undo')?.click();
+        appNs.app?.toast?.('Geri alındı (S Pen)');
+      } else if (act === 'ai') {
+        document.getElementById('aiOpen')?.click();
+      }
+    }
+  };
+
+  const handleBarrelUp = () => {
+    if (prevTool) { switchTool(prevTool); prevTool = null; }
+  };
+
+  const isSpenSidePressed = e => {
+    if (e.pointerType !== 'pen') return false;
+    return (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0 || e.button === 5 || e.button === 2;
+  };
+
+  window.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'pen') return;
+    if (isSpenSidePressed(e) && !barrelDown) {
+      barrelDown = true;
+      handleBarrelDown(`down b:${e.button} bs:${e.buttons}`);
+    }
+  }, { capture: true });
+
+  window.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'pen') return;
+    const pressed = (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0;
+    if (pressed && !barrelDown) {
+      barrelDown = true;
+      handleBarrelDown(`hover/move bs:${e.buttons}`);
+    } else if (!pressed && barrelDown) {
+      barrelDown = false;
+      handleBarrelUp();
+    }
+  }, { capture: true });
+
+  const onPenUp = e => {
+    if (e.pointerType !== 'pen') return;
+    const stillPressed = (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0;
+    if (barrelDown && !stillPressed) {
+      barrelDown = false;
+      handleBarrelUp();
+    }
+  };
+  window.addEventListener('pointerup', onPenUp, { capture: true });
+  window.addEventListener('pointercancel', onPenUp, { capture: true });
+
+  window.addEventListener('contextmenu', e => {
+    if (isTextEditable(e.target)) return;
+    if (getSpenAct() === 'none') return;
+    e.preventDefault();
+    if (!barrelDown) {
+      handleBarrelDown('contextmenu');
+    }
+  }, { capture: true });
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B0E14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="DEHB dostu, kalem odaklı mühendislik not defteri — PDF, el yazısı ve Gemini asistanı.">
+<title>Odak Not</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="focus-studio.css">
+
+<style>
+  #timerBar,
+  .fs-dock,
+  .fs-mini,
+  .fs-float,
+  .fs-sound-sec,
+  .on-hide-unwanted {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #mp3Btn { position: relative; gap: 4px; width: auto; padding: 0 8px; }
+  #mp3Btn.playing { color: #60a5fa; background: rgba(96, 165, 250, 0.14); }
+  #mp3Name { font-size: 11px; font-weight: 600; max-width: 78px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #mp3Pop {
+    position: fixed !important;
+    width: 284px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 72px);
+    overflow-y: auto;
+    padding: 10px;
+    z-index: 9999 !important;
+  }
+  #mp3Pop .lbl { font-size: 10.5px; margin: 6px 0 4px; opacity: .78; }
+  #mp3Pop .lbl:first-child { margin-top: 0; }
+  #mp3Pop .mp3-track { font-size: 11.5px; opacity: .95; margin: 2px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  #mp3Pop .mp3-compact-row { display: flex; gap: 4px; }
+  #mp3Pop .mp3-compact-row .btn { font-size: 11px; padding: 5px 7px; flex: 1; justify-content: center; }
+  #mp3Pop .mp3-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 4px 0 6px; }
+  #mp3Pop .mp3-presets .btn { font-size: 10.5px; padding: 5px 6px; justify-content: flex-start; text-align: left; gap: 4px; }
+  #mp3Pop .mp3-presets .btn.active-snd { background: rgba(59, 130, 246, 0.25); border-color: #3b82f6; color: #93c5fd; font-weight: 600; }
+  #mp3Pop .mp3-seek-box { margin: 6px 0 4px; }
+  #mp3Pop .mp3-seek-row { display: flex; align-items: center; gap: 4px; }
+  #mp3Pop .mp3-seek-row .btn { font-size: 10px; padding: 3px 5px; }
+  #mp3Pop .mp3-seek-row input[type="range"] { flex: 1; accent-color: #3b82f6; height: 14px; }
+  #mp3Pop .mp3-time { display: flex; justify-content: space-between; font-size: 10px; opacity: .72; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  #mp3Pop .mp3-vol { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; }
+  #mp3Pop .mp3-vol .btn { font-size: 10px; padding: 4px 6px; }
+  #mp3Pop .mp3-vol input { flex: 1; accent-color: #3b82f6; }
+  #spenTestBadge { display: inline-block; margin-top: 6px; padding: 4px 8px; border-radius: 6px; font-size: 11px; background: rgba(255,255,255,.06); color: #94a3b8; }
+  #spenTestBadge.ok { background: rgba(34,197,94,.18); color: #4ade80; }
+
+  input,
+  textarea,
+  [contenteditable],
+  [contenteditable="true"],
+  [contenteditable="plaintext-only"],
+  #worldTop [contenteditable],
+  #worldTop textarea,
+  #worldTop input,
+  .txt-box,
+  .text-box,
+  .note-txt,
+  .snote-b,
+  .card-txt {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
+    touch-action: manipulation !important;
+  }
+  .key-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .key-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .key-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+</style>
+
+<script defer src="storage.js"></script>
+<script defer src="canvas-tools.js"></script>
+<script defer src="pdf-engine.js"></script>
+<script defer src="ai-study.js"></script>
+<script defer src="quiz.js"></script>
+<script defer src="app.js"></script>
+<script defer src="focus-studio.js"></script>
+<script defer src="graph.js"></script>
+<script defer src="pro-tools.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <aside id="side" aria-label="Kütüphane ve defter gezinme">
+    <div class="side-h">
+      <b class="brand">Odak Not</b>
+      <button class="ico" id="hideSide" data-icon="chevL" title="Paneli kapat"></button>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button role="tab" data-tab="lib" class="on" title="Dersler ve defterler"><span data-icon="folder"></span>Kütüphane</button>
+      <button role="tab" data-tab="pages" title="Sayfa önizlemeleri"><span data-icon="pages"></span>Sayfalar</button>
+      <button role="tab" data-tab="toc" title="PDF içindekiler"><span data-icon="toc"></span>İçindekiler</button>
+      <button role="tab" data-tab="find" title="Defterde ara"><span data-icon="search"></span>Ara</button>
+    </nav>
+
+    <section class="pane on" id="paneLib">
+      <div class="lbl">Dersler <button class="ico sm" id="addFolderBtn" data-icon="plus" title="Ders ekle"></button></div>
+      <form class="addrow" id="folderRow"><input id="folderIn" placeholder="Ders adı (ör. Sinyaller ve Sistemler)" autocomplete="off"><button class="btn pri">Ekle</button></form>
+      <div id="folders"></div>
+      <div class="lbl">Defterler</div>
+      <div id="notebooks"></div>
+    </section>
+
+    <section class="pane" id="panePages">
+      <div class="pane-acts">
+        <button class="btn" id="addPageBtn"><span data-icon="plus"></span>Boş sayfa ekle</button>
+        <button class="btn ghost" id="delPageBtn" title="Bu sayfayı sil"><span data-icon="trash"></span></button>
+      </div>
+      <div id="thumbs" class="thumbs"></div>
+    </section>
+
+    <section class="pane" id="paneToc"><div id="toc"></div></section>
+
+    <section class="pane" id="paneFind">
+      <form id="findForm" class="find"><input id="findIn" type="search" placeholder="Defterde ara…" autocomplete="off"></form>
+      <p class="hint small" id="findProg"></p>
+      <div id="findRes"></div>
+    </section>
+
+    <div class="side-f">
+      <button class="btn pri wide" id="newNbBtn"><span data-icon="plus"></span>Yeni defter</button>
+      <button class="ico" id="openSettings" data-icon="settings" title="Ayarlar"></button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header id="top">
+      <button class="ico" id="toggleSide" data-icon="menu" title="Paneli aç/kapat"></button>
+      <input id="title" aria-label="Defter başlığı" value="Odak Not" autocomplete="off">
+      <span id="saved" aria-live="polite">Kaydedildi</span>
+      <button class="ico timer" id="timerBtn" title="Odak sayacı (sessiz)"><span data-icon="timer"></span><b id="timerTxt"></b></button>
+      <button class="ico" id="mp3Btn" title="Odak müziği / MP3 & DEHB sesleri" aria-label="Odak Sesi">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span id="mp3Name" hidden></span>
+      </button>
+      <button class="ico" id="studyBtn" data-icon="study" title="Çalışma özeti"></button>
+      <button class="ico" id="paperBtn" data-icon="paper" title="Kâğıt ve sayfa düzeni"></button>
+      <button class="ico" id="exportBtn" data-icon="export" title="PDF olarak dışa aktar"></button>
+      <button class="ico" id="zenBtn" data-icon="zen" title="Zen / odak modu (Z)"></button>
+      <button class="ai-btn" id="aiOpen" title="Gemini çalışma asistanı"><span data-icon="sparkle"></span><span class="lbl-t">Asistan</span></button>
+    </header>
+
+    <div id="stage">
+      <div id="world"></div>
+      <canvas id="hlCanvas" class="layer"></canvas>
+      <canvas id="inkCanvas" class="layer"></canvas>
+      <canvas id="liveCanvas" class="layer"></canvas>
+      <div id="worldTop"></div>
+
+      <div id="empty" hidden>
+        <p><b>Kütüphanen boş.</b><br>Yeni bir defter aç ya da bir ders PDF'i içe aktar.</p>
+        <div class="row center"><button class="btn pri" id="emptyNew">Yeni defter</button><button class="btn" id="emptyPdf">PDF aç</button></div>
+      </div>
+
+      <div id="gizmoBar" class="floatbar" data-ui hidden>
+        <button id="gzColor" title="Seçili çizgileri mevcut renge boya"><i class="dot" id="gzDot"></i>Renk</button>
+        <button id="gzDup" data-icon="copy" title="Çoğalt"></button>
+        <button id="gzDel" data-icon="trash" title="Sil"></button>
+        <button id="gzAi" class="acc"><span data-icon="sparkle"></span>Gemini'ye gönder</button>
+      </div>
+
+      <div id="selMenu" class="floatbar" data-ui hidden>
+        <button data-sel="translate">Türkçeye çevir</button>
+        <button data-sel="summarize">Özetle</button>
+        <button data-sel="explain">Açıkla</button>
+        <button data-sel="copy" data-icon="copy" title="Kopyala"></button>
+        <span class="sep"></span>
+        <span id="selColors"></span>
+      </div>
+
+      <canvas id="minimap" data-ui title="Mini harita — dokun ve sürükle"></canvas>
+      <button id="backBtn" class="pill" data-ui hidden><span data-icon="target"></span>Son yazılan yere dön</button>
+      <button id="zenExit" class="pill faint" data-ui hidden>Zen'den çık</button>
+
+      <div id="tools" data-ui role="toolbar" aria-label="Kalem araçları">
+        <button class="grip" id="toolGrip" title="Sürükle — araç çubuğunu taşı" aria-label="Araç çubuğunu taşı"></button>
+        <div class="tgroup" id="toolBtns">
+          <button class="ico" data-tool="pen" title="Kalem (P) — tekrar dokun: kalem türü ve kalınlık"></button>
+          <button class="ico" data-tool="highlighter" data-icon="highlighter" title="Fosforlu kalem (H)"></button>
+          <button class="ico" data-tool="eraser" data-icon="eraser" title="Silgi (E) — tekrar dokun: silgi modu"></button>
+          <button class="ico" data-tool="lasso" data-icon="lasso" title="Kement (L)"></button>
+          <button class="ico" data-tool="laser" data-icon="laser" title="Lazer işaretçi"></button>
+          <button class="ico" data-tool="textsel" data-icon="textsel" title="PDF metni seç (S)"></button>
+          <button class="ico" data-tool="insert" data-icon="insert" title="Ekle: metin kutusu, görsel"></button>
+        </div>
+        <span class="sep collapsible"></span>
+        <div class="tgroup collapsible" id="swatches"></div>
+        <label class="ico collapsible colorpick" title="Tüm renkler"><input type="color" id="colorPick" aria-label="Renk seçici"><span data-icon="palette"></span></label>
+        <span class="sep collapsible"></span>
+        <div class="tgroup collapsible" id="sizes"></div>
+        <span class="sep collapsible"></span>
+        <button class="ico collapsible" id="undo" data-icon="undo" title="Geri al (Ctrl+Z, iki parmakla dokun)"></button>
+        <button class="ico collapsible" id="redo" data-icon="redo" title="Yinele (Ctrl+Y, üç parmakla dokun)"></button>
+        <button class="ico" id="collapseTools" data-icon="chevL" title="Araç çubuğunu katla"></button>
+      </div>
+      <div id="toolPop" class="pop" data-ui hidden></div>
+
+      <section id="ai" data-ui aria-label="Gemini çalışma asistanı">
+        <div class="ai-h"><b>Asistan</b><button class="ico" id="aiClose" data-icon="close" title="Kapat"></button></div>
+        <div id="aiCtx" class="ai-ctx" hidden>
+          <img id="aiCtxImg" alt="Gönderilecek bölge" hidden>
+          <span id="aiCtxLbl"></span>
+          <button class="ico sm" id="aiCtxClear" data-icon="close" title="Bağlamı temizle (sayfaya dön)"></button>
+        </div>
+        <div class="ai-acts" id="acts"></div>
+        <form id="ask"><input id="askIn" placeholder="Bu sayfa hakkında soru sor…" autocomplete="off"><button class="btn pri">Sor</button></form>
+        <div id="out"><p class="hint">Sayfayı ya da kementle seçtiğin bölgeyi Gemini'ye gönderir. Yanıtı bir kart olarak tuvale sabitleyebilirsin.</p></div>
+        <div id="outActs" class="row" hidden>
+          <button class="btn pri" id="pinOut"><span data-icon="pin"></span>Tuvale sabitle</button>
+          <button class="btn" id="copyOut"><span data-icon="copy"></span>Kopyala</button>
+        </div>
+      </section>
+
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="newNbDlg" role="dialog" aria-modal="true" aria-labelledby="newNbT">
+  <form class="card" id="newNbForm">
+    <h2 id="newNbT">Yeni defter</h2>
+    <input id="nbTitle" placeholder="Defter adı (ör. Hafta 5 — Laplace)" autocomplete="off">
+    <div class="seg" id="nbMode">
+      <button type="button" data-v="p" class="on">A4 dikey</button><button type="button" data-v="l">A4 yatay</button><button type="button" data-v="inf">Sınırsız tuval</button>
+    </div>
+    <div class="lbl">Şablon</div><div class="chips" id="nbTpl"></div>
+    <div class="lbl">Kâğıt rengi</div><div class="chips" id="nbTheme"></div>
+    <div class="row"><button type="button" class="btn" id="nbFromPdf"><span data-icon="export" class="flip"></span>PDF'den oluştur</button><span class="grow"></span><button type="button" class="btn" data-close>Vazgeç</button><button class="btn pri">Oluştur</button></div>
+    <p class="hint small" id="nbMsg"></p>
+  </form>
+</div>
+
+<div class="modal" id="paperDlg" role="dialog" aria-modal="true" aria-labelledby="paperT">
+  <div class="card">
+    <h2 id="paperT">Kâğıt ve düzen</h2>
+    <div id="paperLayoutBox"><div class="lbl">Düzen</div>
+      <div class="seg" id="pdLayout"><button data-v="p">A4 dikey</button><button data-v="l">A4 yatay</button><button data-v="inf">Sınırsız tuval</button></div></div>
+    <div class="lbl">Şablon <small class="hint" id="pdTplNote"></small></div><div class="chips" id="pdTpl"></div>
+    <div class="lbl">Kâğıt rengi</div><div class="chips" id="pdTheme"></div>
+    <label class="chk" id="pdDarkRow"><input type="checkbox" id="pdDark"> PDF'yi koyu göster (göz yormaz)</label>
+    <div class="row"><span class="grow"></span><button class="btn pri" data-close>Tamam</button></div>
+  </div>
+</div>
+
+<div class="modal" id="exportDlg" role="dialog" aria-modal="true" aria-labelledby="expT">
+  <div class="card">
+    <h2 id="expT">PDF olarak dışa aktar</h2>
+    <div class="seg" id="expScope"><button data-v="page">Bu sayfa</button><button data-v="nb" class="on">Tüm defter</button><button data-v="folder">Tüm ders</button></div>
+    <label class="chk"><input type="checkbox" id="expPrint" checked> Yazdırma dostu (koyu kâğıt beyaza, mürekkep koyuya)</label>
+    <label class="chk"><input type="checkbox" id="expCards" checked> Yapışkan kartları dahil et</label>
+    <div class="seg" id="expQ"><button data-v="2" class="on">Standart</button><button data-v="3">Yüksek çözünürlük</button></div>
+    <div class="progress" id="expProg" hidden><i></i></div>
+    <p class="hint small" id="expMsg"></p>
+    <div class="row"><span class="grow"></span><button class="btn" id="expCancel">Kapat</button><button class="btn pri" id="expGo">Dışa aktar</button></div>
+  </div>
+</div>
+
+<div class="modal" id="studyDlg" role="dialog" aria-modal="true" aria-labelledby="sgT">
+  <div class="card wide">
+    <div class="row"><h2 id="sgT">Çalışma özeti</h2><span class="grow"></span><small class="hint" id="sgCount"></small><button class="ico" data-close data-icon="close" title="Kapat"></button></div>
+    <div class="chips" id="sgFilters"></div>
+    <div class="sg-list" id="sgList"></div>
+    <div class="row wrap">
+      <button class="btn" id="sgCopy"><span data-icon="copy"></span>Markdown kopyala</button>
+      <button class="btn" id="sgAdd"><span data-icon="plus"></span>Deftere özet sayfası ekle</button>
+      <button class="btn pri" id="sgQuizBtn"><span data-icon="sparkle"></span>Sınav soruları üret</button>
+    </div>
+    <div id="sgQuiz" hidden><div class="sg-quiz" id="sgQuizOut"></div>
+      <div class="row"><button class="btn" id="sgQuizPin"><span data-icon="pin"></span>Tuvale sabitle</button><button class="btn" id="sgQuizCopy"><span data-icon="copy"></span>Kopyala</button></div></div>
+  </div>
+</div>
+
+<div class="modal" id="settingsDlg" role="dialog" aria-modal="true" aria-labelledby="setT">
+  <form class="card" id="setForm">
+    <h2 id="setT">Ayarlar</h2>
+    <div class="lbl">Gemini</div>
+    <p class="hint small">API anahtarın yalnızca bu cihazda saklanır ve doğrudan Google'a gönderilir. Ücretsiz anahtar: aistudio.google.com/apikey</p>
+    <div class="key-box">
+      <input id="keyIn" type="text" spellcheck="false" autocapitalize="off" placeholder="Gemini API anahtarını buraya yapıştır (AIza...)" autocomplete="off">
+      <div class="key-actions">
+        <button type="button" class="btn" id="keyPasteBtn">Panodan Yapıştır</button>
+        <button type="button" class="btn" id="keyCopyBtn">Kopyala</button>
+        <button type="button" class="btn ghost" id="keyClearBtn">Temizle</button>
+      </div>
+    </div>
+    <select id="modelIn">
+      <option value="gemini-3.8-flash">gemini-3.8-flash (önerilen)</option>
+      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+      <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (hızlı, yüksek kota)</option>
+      <option value="gemini-flash-latest">gemini-flash-latest (her zaman en yeni)</option>
+    </select>
+    <input id="modelCustom" placeholder="veya özel model adı (isteğe bağlı)" autocomplete="off">
+    <p id="testMsg" class="hint small pre"></p>
+    <div class="lbl">Kalem ve ekran</div>
+    <label class="chk"><input type="checkbox" id="fingerDraw"> Parmakla çizime izin ver (kalemsiz cihazlar; iki parmak kaydırır)</label>
+    <label class="chk"><input type="checkbox" id="showMini"> Mini haritayı göster</label>
+    <div class="lbl">S Pen yan tuş görevi</div>
+    <select id="spenAction">
+      <option value="eraser-hold">Basılı tutunca Silgi (bırakınca kaleme dön)</option>
+      <option value="lasso-hold">Basılı tutunca Kement Seçim (bırakınca dön)</option>
+      <option value="eraser-toggle">Tıklayınca Kalem ↔ Silgi değiştir</option>
+      <option value="highlighter-toggle">Tıklayınca Kalem ↔ Fosforlu değiştir</option>
+      <option value="undo">Tıklayınca Son işlemi geri al (Undo)</option>
+      <option value="ai">Tıklayınca Gemini Asistan'ı aç/kapat</option>
+      <option value="none">Kapalı</option>
+    </select>
+    <div id="spenTestBadge">S Pen tuş testi: Kalemi ekrana yaklaştırıp yan tuşa bas</div>
+    <div class="lbl">Depolama</div>
+    <div class="progress" id="quotaBar"><i></i></div>
+    <p class="hint small" id="quotaTxt"></p>
+    <div class="row wrap">
+      <button type="button" class="btn" id="backupBtn"><span data-icon="export"></span>Yedek al (.odaknot)</button>
+      <button type="button" class="btn" id="restoreBtn"><span data-icon="export" class="flip"></span>Yedekten yükle</button>
+      <button type="button" class="btn ghost" id="cleanBtn">Kullanılmayan PDF'leri temizle</button>
+    </div>
+    <p class="hint small pre" id="backupMsg"></p>
+    <div class="row"><button type="button" class="btn" id="testBtn">Bağlantıyı test et</button><span class="grow"></span><button type="button" class="btn" data-close>Vazgeç</button><button class="btn pri">Kaydet</button></div>
+  </form>
+</div>
+
+<div class="modal" id="confirmDlg" role="alertdialog" aria-modal="true" aria-labelledby="cfT">
+  <div class="card narrow">
+    <h2 id="cfT"></h2>
+    <p class="hint" id="cfMsg"></p>
+    <div class="row"><span class="grow"></span><button class="btn" id="cfNo">Vazgeç</button><button class="btn danger" id="cfYes">Tamam</button></div>
+  </div>
+</div>
+
+<div class="pop" id="timerPop" data-ui hidden>
+  <div class="lbl">Sessiz odak sayacı</div>
+  <div class="row"><button class="btn" data-min="15">15 dk</button><button class="btn" data-min="25">25 dk</button><button class="btn" data-min="45">45 dk</button></div>
+  <button class="btn ghost wide" id="timerStop" hidden>Sayacı durdur</button>
+</div>
+
+<div class="pop" id="mp3Pop" data-ui hidden>
+  <div class="lbl">Müzik &amp; Ortam Sesleri</div>
+  <div class="mp3-track" id="mp3Track">Seçim yapılmadı</div>
+  <div class="mp3-compact-row">
+    <button type="button" class="btn pri" id="mp3Pick">+ MP3</button>
+    <button type="button" class="btn" id="mp3Play" disabled>Oynat</button>
+    <button type="button" class="btn" id="mp3Next" hidden>Sonraki</button>
+  </div>
+  <div class="mp3-presets" id="adhdPresets">
+    <button type="button" class="btn" data-snd="fire">🔥 Şömine</button>
+    <button type="button" class="btn" data-snd="rain">🌧️ Yağmur</button>
+    <button type="button" class="btn" data-snd="piano">🎹 Piyano</button>
+    <button type="button" class="btn" data-snd="symphony">🎼 Senfoni</button>
+    <button type="button" class="btn" data-snd="lofi">🎧 Lo-Fi</button>
+    <button type="button" class="btn" data-snd="forest">🌲 Orman</button>
+    <button type="button" class="btn" data-snd="city">🏙️ Şehir</button>
+    <button type="button" class="btn" data-snd="gamma40">⚡ 40Hz Binaural</button>
+    <button type="button" class="btn" data-snd="theta">🌊 6Hz Theta</button>
+    <button type="button" class="btn" data-snd="brown">🧠 Brown Noise</button>
+  </div>
+  <div class="mp3-seek-box">
+    <div class="mp3-seek-row">
+      <button type="button" class="btn ghost" id="mp3Rew" disabled title="10 sn geri">-10s</button>
+      <input type="range" id="mp3Seek" min="0" max="100" step="0.1" value="0" disabled>
+      <button type="button" class="btn ghost" id="mp3Fwd" disabled title="10 sn ileri">+10s</button>
+    </div>
+    <div class="mp3-time">
+      <span id="mp3CurTime">00:00</span>
+      <span id="mp3DurTime">00:00</span>
+    </div>
+  </div>
+  <div class="mp3-vol">
+    <span>Ses</span>
+    <input type="range" id="mp3Vol" min="0" max="1" step="0.05" value="0.6">
+    <button type="button" class="btn ghost" id="mp3Loop">Döngü: Açık</button>
+  </div>
+</div>
+
+<input type="file" id="pdfIn" accept="application/pdf,.pdf" hidden>
+<input type="file" id="imgIn" accept="image/*" hidden>
+<input type="file" id="mp3In" accept="audio/*,.mp3,.m4a,.wav,.ogg" multiple hidden>
+<input type="file" id="restoreIn" accept=".odaknot,application/octet-stream" hidden>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
+
+function prettifyMathText(raw) {
+  if (!raw || typeof raw !== 'string') return raw || '';
+  const supMap = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','=':'⁼','(':'⁽',')':'⁾','n':'ⁿ','i':'ⁱ','k':'ᵏ','x':'ˣ','y':'ʸ','t':'ᵗ' };
+  const subMap = { '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋','=':'₌','(':'₍',')':'₎','a':'ₐ','e':'ₑ','i':'ᵢ','o':'ₒ','n':'ₙ','m':'ₘ','k':'ₖ' };
+  const toSup = s => [...s].map(ch => supMap[ch] || ('^' + ch)).join('');
+  const toSub = s => [...s].map(ch => subMap[ch] || ('_' + ch)).join('');
+
+  const convertExpr = expr => {
+    let t = String(expr || '').trim();
+    t = t.replace(/\\text\{([^}]*)\}|\\mathrm\{([^}]*)\}|\\mathbf\{([^}]*)\}/g, (_, a, b, c) => (a || b || c || ''));
+    t = t.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+    t = t.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
+    t = t.replace(/\\left|\\right/g, '');
+    t = t.replace(/\\times|\\cdot/g, '×');
+    t = t.replace(/\\div/g, '÷');
+    t = t.replace(/\\pm/g, '±');
+    t = t.replace(/\\mp/g, '∓');
+    t = t.replace(/\\approx/g, '≈');
+    t = t.replace(/\\neq|\\ne/g, '≠');
+    t = t.replace(/\\leq|\\le/g, '≤');
+    t = t.replace(/\\geq|\\ge/g, '≥');
+    t = t.replace(/\\rightarrow|\\to/g, '→');
+    t = t.replace(/\\Rightarrow/g, '⇒');
+    t = t.replace(/\\infty/g, '∞');
+    t = t.replace(/\\sum/g, '∑');
+    t = t.replace(/\\int/g, '∫');
+    t = t.replace(/\\prod/g, '∏');
+    t = t.replace(/\\partial/g, '∂');
+    t = t.replace(/\\nabla/g, '∇');
+    t = t.replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\delta/g, 'δ');
+    t = t.replace(/\\Delta/g, 'Δ').replace(/\\Theta/g, 'Θ').replace(/\\theta/g, 'θ').replace(/\\lambda/g, 'λ');
+    t = t.replace(/\\mu/g, 'μ').replace(/\\pi/g, 'π').replace(/\\rho/g, 'ρ').replace(/\\sigma/g, 'σ').replace(/\\Sigma/g, 'Σ');
+    t = t.replace(/\\tau/g, 'τ').replace(/\\phi/g, 'φ').replace(/\\Phi/g, 'Φ').replace(/\\omega/g, 'ω').replace(/\\Omega/g, 'Ω');
+    t = t.replace(/\^\{([^{}]+)\}/g, (_, g) => toSup(g));
+    t = t.replace(/\^([0-9a-zA-Z+-])/g, (_, g) => toSup(g));
+    t = t.replace(/_\{([^{}]+)\}/g, (_, g) => toSub(g));
+    t = t.replace(/_([0-9a-zA-Z+-])/g, (_, g) => toSub(g));
+    t = t.replace(/[{}]/g, '');
+    return t.replace(/\s{2,}/g, ' ').trim();
+  };
+
+  let out = raw;
+  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_, inner) => '\n' + convertExpr(inner) + '\n');
+  out = out.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (_, inner) => convertExpr(inner));
+  return out.replace(/\n{3,}/g, '\n\n').trim();
 }
+window.prettifyMathText = prettifyMathText;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cleanExtraTimerUI = () => {
+    const timerPop = document.getElementById('timerPop');
+    if (timerPop) {
+      timerPop.querySelectorAll('*').forEach(el => {
+        const txt = (el.textContent || '').trim();
+        if (txt.startsWith('Odak Sesi')) {
+          el.classList.add('on-hide-unwanted');
+          let sib = el.nextElementSibling;
+          while (sib) {
+            sib.classList.add('on-hide-unwanted');
+            sib = sib.nextElementSibling;
+          }
+        }
+      });
+    }
+
+    document.querySelectorAll('#stage > div, body > div, #main > div').forEach(el => {
+      if (el.id === 'tools' || el.id === 'timerPop' || el.id === 'mp3Pop' || el.id === 'ai' || el.id === 'gizmoBar' || el.id === 'selMenu') return;
+      if (el.closest && el.closest('#tools, #timerPop, #mp3Pop, #ai, #side, #top')) return;
+      const txt = (el.textContent || '');
+      if (txt.includes('Kronometre') && txt.includes('Sıfırla') && (txt.includes('Ses:') || txt.includes('-5d') || txt.includes('+5d'))) {
+        el.classList.add('on-hide-unwanted');
+      }
+    });
+  };
+
+  cleanExtraTimerUI();
+  setTimeout(cleanExtraTimerUI, 150);
+  setTimeout(cleanExtraTimerUI, 600);
+  if (document.body) {
+    new MutationObserver(() => cleanExtraTimerUI()).observe(document.body, { childList: true, subtree: true });
+  }
+
+  const appNs = window.ON || (window.ON = {});
+
+  const isTextEditable = el => {
+    if (!el || typeof el.closest !== 'function') return false;
+    return !!el.closest('input, textarea, [contenteditable], #worldTop [contenteditable], #worldTop textarea, #worldTop input, .txt-box, .text-box, .note-txt, .snote-b, .card-txt');
+  };
+
+  const insertTextIntoEditable = (el, text) => {
+    if (!el) return;
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      const start = el.selectionStart ?? el.value.length;
+      const end = el.selectionEnd ?? el.value.length;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + text.length;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    const ed = el.isContentEditable ? el : el.closest('[contenteditable]');
+    if (ed) {
+      ed.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (ed.contains(range.commonAncestorContainer)) {
+          range.deleteContents();
+          const lines = text.split('\n');
+          const frag = document.createDocumentFragment();
+          lines.forEach((line, i) => {
+            if (i > 0) frag.appendChild(document.createElement('br'));
+            frag.appendChild(document.createTextNode(line));
+          });
+          range.insertNode(frag);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          ed.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+      }
+      ed.textContent = (ed.textContent || '') + text;
+      ed.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+
+  const bindEditableElement = el => {
+    if (!el || el.dataset.pasteBound === '1') return;
+    el.dataset.pasteBound = '1';
+    el.style.userSelect = 'text';
+    el.style.webkitUserSelect = 'text';
+    el.style.webkitTouchCallout = 'default';
+
+    el.addEventListener('contextmenu', e => {
+      e.stopPropagation();
+    });
+
+    el.addEventListener('paste', e => {
+      e.stopPropagation();
+      const clip = e.clipboardData?.getData('text/plain');
+      if (!clip) return;
+      const clean = prettifyMathText(clip);
+      if (clean !== clip) {
+        e.preventDefault();
+        insertTextIntoEditable(el, clean);
+      }
+    });
+  };
+
+  document.querySelectorAll('input, textarea, [contenteditable]').forEach(bindEditableElement);
+
+  const worldTop = document.getElementById('worldTop');
+  const outEl = document.getElementById('out');
+
+  const cleanDomTree = root => {
+    if (!root) return;
+    if (root.closest?.('#onQuizApp, #onGraphWin, #onFcModal')) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement?.closest?.('#onQuizApp, #onGraphWin, #onFcModal, .katex')) continue;
+      if (node.nodeValue && (node.nodeValue.includes('$') || node.nodeValue.includes('\\frac') || node.nodeValue.includes('\\times') || node.nodeValue.includes('\\cdot'))) {
+        const cleaned = prettifyMathText(node.nodeValue);
+        if (cleaned !== node.nodeValue) node.nodeValue = cleaned;
+      }
+    }
+    if (root.nodeType === 1) {
+      if (isTextEditable(root)) bindEditableElement(root);
+      root.querySelectorAll?.('input, textarea, [contenteditable]').forEach(bindEditableElement);
+    }
+  };
+
+  if (document.body) {
+    new MutationObserver(muts => {
+      muts.forEach(m => m.addedNodes.forEach(n => {
+        if (n.nodeType === 1) cleanDomTree(n);
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  document.getElementById('copyOut')?.addEventListener('click', () => {
+    const txt = outEl?.innerText || outEl?.textContent || '';
+    if (!txt.trim()) return;
+    const clean = prettifyMathText(txt);
+    navigator.clipboard?.writeText(clean).catch(() => {});
+  }, { capture: true });
+
+  document.getElementById('pinOut')?.addEventListener('click', () => {
+    if (outEl) cleanDomTree(outEl);
+    setTimeout(() => {
+      if (worldTop) cleanDomTree(worldTop);
+    }, 80);
+  }, { capture: true });
+
+  const keyIn = document.getElementById('keyIn');
+  const keyPasteBtn = document.getElementById('keyPasteBtn');
+  const keyCopyBtn = document.getElementById('keyCopyBtn');
+  const keyClearBtn = document.getElementById('keyClearBtn');
+
+  keyPasteBtn?.addEventListener('click', async () => {
+    if (!keyIn) return;
+    try {
+      const txt = prettifyMathText((await navigator.clipboard.readText()).trim());
+      if (txt) {
+        keyIn.value = txt;
+        keyIn.dispatchEvent(new Event('input', { bubbles: true }));
+        appNs.app?.toast?.('API anahtarı yapıştırıldı');
+      } else {
+        appNs.app?.toast?.('Panoda kopyalanmış metin yok');
+      }
+    } catch {
+      keyIn.focus();
+      keyIn.select();
+      appNs.app?.toast?.('Kutunun içine basılı tutup Yapıştır seçin');
+    }
+  });
+
+  keyCopyBtn?.addEventListener('click', async () => {
+    if (!keyIn) return;
+    const val = keyIn.value.trim();
+    if (!val) {
+      appNs.app?.toast?.('Kopyalanacak anahtar yok');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(val);
+      appNs.app?.toast?.('API anahtarı panoya kopyalandı');
+    } catch {
+      keyIn.focus();
+      keyIn.select();
+      try { document.execCommand('copy'); } catch {}
+      appNs.app?.toast?.('API anahtarı panoya kopyalandı');
+    }
+  });
+
+  keyClearBtn?.addEventListener('click', () => {
+    if (!keyIn) return;
+    keyIn.value = '';
+    keyIn.focus();
+    keyIn.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  const mp3Btn = document.getElementById('mp3Btn');
+  const mp3Pop = document.getElementById('mp3Pop');
+  const mp3In = document.getElementById('mp3In');
+  const mp3Pick = document.getElementById('mp3Pick');
+  const mp3Play = document.getElementById('mp3Play');
+  const mp3Next = document.getElementById('mp3Next');
+  const mp3Rew = document.getElementById('mp3Rew');
+  const mp3Fwd = document.getElementById('mp3Fwd');
+  const mp3Seek = document.getElementById('mp3Seek');
+  const mp3CurTime = document.getElementById('mp3CurTime');
+  const mp3DurTime = document.getElementById('mp3DurTime');
+  const mp3Loop = document.getElementById('mp3Loop');
+  const mp3Vol = document.getElementById('mp3Vol');
+  const mp3Track = document.getElementById('mp3Track');
+  const mp3Name = document.getElementById('mp3Name');
+  const presetBox = document.getElementById('adhdPresets');
+
+  if (!mp3Btn || !mp3Pop) return;
+
+  const trackCatalog = {
+    fire: {
+      label: 'Şömine',
+      badge: 'Şömine',
+      synth: 'fire',
+      candidates: [
+        'audio/fire-crackling-with-wind-gusts-gregor-quendel-1-01-03 (1).mp3',
+        'audio/fire-crackling-with-wind-gusts-gregor-quendel-1-01-03.mp3'
+      ]
+    },
+    rain: {
+      label: 'Yağmur',
+      badge: 'Yağmur',
+      synth: 'rain',
+      candidates: [
+        'audio/mixkit-urban-city-ambience-at-night-2678 (compressed by happyscribe.com) (1).wav',
+        'audio/mixkit-urban-city-ambience-at-night-2678 (compressed by happyscribe.com).wav'
+      ]
+    },
+    piano: {
+      label: 'Piyano',
+      badge: 'Piyano',
+      synth: 'piano',
+      candidates: [
+        'audio/pianocafe_kumi-emotional-pianosecret-love-252596 (compressed by happyscribe.com).mp3',
+        'audio/pianocafe_kumi-emotional-pianosecret-love-252596.mp3'
+      ]
+    },
+    symphony: {
+      label: 'Senfoni',
+      badge: 'Senfoni',
+      synth: 'symphony',
+      candidates: [
+        'audio/miromaxmusic-classical-symphony-no-copyright-637830 (compressed by happyscribe.com).mp3',
+        'audio/miromaxmusic-classical-symphony-no-copyright-637830.mp3'
+      ]
+    },
+    lofi: {
+      label: 'Lo-Fi',
+      badge: 'Lo-Fi',
+      synth: 'lofi',
+      candidates: [
+        'audio/danyvin-lofi-chill-638526 (compressed by happyscribe.com).mp3',
+        'audio/danyvin-lofi-chill-638526.mp3'
+      ]
+    },
+    forest: {
+      label: 'Orman',
+      badge: 'Orman',
+      synth: 'forest',
+      candidates: [
+        'audio/forest-ambience-light-birdsong-distant-rooster-vincentmets-1-03-38 (compressed by happyscribe.com).mp3',
+        'audio/forest-ambience-light-birdsong-distant-rooster-vincentmets-1-03-38.mp3'
+      ]
+    },
+    city: {
+      label: 'Şehir',
+      badge: 'Şehir',
+      synth: 'city',
+      candidates: [
+        'audio/city-ambience-distant-emergency-sirens-off-quiet-street-vincentmets-1-02-17 (compressed by happyscribe.com).mp3',
+        'audio/city-ambience-distant-emergency-sirens-off-quiet-street-vincentmets-1-02-17.mp3'
+      ]
+    },
+    gamma40: { label: '40Hz Binaural', badge: '40Hz', synth: 'gamma40' },
+    theta: { label: '6Hz Theta', badge: '6Hz', synth: 'theta' },
+    brown: { label: 'Brown Noise', badge: 'Brown', synth: 'brown' }
+  };
+
+  const audio = new Audio();
+  audio.preload = 'auto';
+  let tracks = [], idx = 0, loop = true, seeking = false, fileActive = false, streamActive = false, filePlaying = false, playToken = 0;
+  let audioCtx = null, synthGain = null, synthTimer = null, synthNodes = [], activePreset = null;
+
+  const savedVol = parseFloat(localStorage.getItem('on-mp3-vol'));
+  const volVal = Number.isFinite(savedVol) ? Math.max(0, Math.min(1, savedVol)) : 0.6;
+  audio.volume = volVal;
+  if (mp3Vol) mp3Vol.value = String(volVal);
+
+  const ensureAudioCtx = () => {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  };
+
+  const stopSynth = () => {
+    if (synthTimer) { clearInterval(synthTimer); synthTimer = null; }
+    synthNodes.forEach(n => {
+      try { n.stop?.(); } catch {}
+      try { n.disconnect?.(); } catch {}
+    });
+    synthNodes = [];
+    if (synthGain) {
+      try { synthGain.disconnect(); } catch {}
+      synthGain = null;
+    }
+    streamActive = false;
+  };
+
+  const fmtTime = sec => {
+    if (!Number.isFinite(sec) || sec < 0) return '00:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const syncSeekUI = () => {
+    const hasFileLoaded = filePlaying && Number.isFinite(audio.duration) && audio.duration > 0;
+    if (mp3Rew) mp3Rew.disabled = !hasFileLoaded || audio.paused;
+    if (mp3Fwd) mp3Fwd.disabled = !hasFileLoaded || audio.paused;
+    if (mp3Seek) {
+      mp3Seek.disabled = !hasFileLoaded;
+      if (hasFileLoaded) {
+        mp3Seek.max = String(audio.duration);
+        if (!seeking) mp3Seek.value = String(Math.min(audio.currentTime || 0, audio.duration));
+      } else if (!seeking) {
+        mp3Seek.value = '0';
+      }
+    }
+    if (mp3CurTime) mp3CurTime.textContent = hasFileLoaded ? fmtTime(seeking ? parseFloat(mp3Seek?.value || '0') : audio.currentTime) : (streamActive ? '∞' : '00:00');
+    if (mp3DurTime) mp3DurTime.textContent = hasFileLoaded ? fmtTime(audio.duration) : (streamActive ? 'Canlı' : '00:00');
+  };
+
+  const seekTo = sec => {
+    const dur = Number.isFinite(audio.duration) ? audio.duration : 0;
+    const clamped = dur > 0 ? Math.max(0, Math.min(sec, dur)) : Math.max(0, sec);
+    audio.currentTime = clamped;
+    if (mp3Seek) mp3Seek.value = String(clamped);
+    if (mp3CurTime) mp3CurTime.textContent = fmtTime(clamped);
+  };
+
+  const syncMp3 = () => {
+    const cur = tracks[idx];
+    const isPlaying = activePreset
+      ? (streamActive || filePlaying)
+      : (!audio.paused && !!cur);
+
+    mp3Btn.classList.toggle('playing', isPlaying);
+
+    if (activePreset && trackCatalog[activePreset]) {
+      const meta = trackCatalog[activePreset];
+      if (mp3Track) mp3Track.textContent = meta.label;
+      if (mp3Name) {
+        mp3Name.hidden = false;
+        mp3Name.textContent = meta.badge;
+      }
+      if (mp3Play) {
+        mp3Play.disabled = false;
+        mp3Play.textContent = isPlaying ? 'Durdur' : 'Oynat';
+      }
+    } else if (fileActive && cur) {
+      if (mp3Track) mp3Track.textContent = cur.name;
+      if (mp3Name) {
+        mp3Name.hidden = false;
+        mp3Name.textContent = cur.name.replace(/\.[^.]+$/, '');
+      }
+      if (mp3Play) {
+        mp3Play.disabled = false;
+        mp3Play.textContent = !audio.paused ? 'Duraklat' : 'Oynat';
+      }
+    } else {
+      if (mp3Track) mp3Track.textContent = 'Seçim yapılmadı';
+      if (mp3Name) {
+        mp3Name.hidden = true;
+        mp3Name.textContent = '';
+      }
+      if (mp3Play) {
+        mp3Play.disabled = !tracks.length;
+        mp3Play.textContent = 'Oynat';
+      }
+    }
+
+    if (mp3Next) mp3Next.hidden = tracks.length <= 1;
+    if (mp3Loop) mp3Loop.textContent = loop ? 'Döngü: Açık' : 'Döngü: Kapalı';
+    syncSeekUI();
+  };
+
+  const startInstantSynth = synthType => {
+    stopSynth();
+    const ctx = ensureAudioCtx();
+    if (!ctx) return false;
+
+    synthGain = ctx.createGain();
+    synthGain.gain.value = (parseFloat(mp3Vol?.value || '0.6') || 0.6) * 0.35;
+    synthGain.connect(ctx.destination);
+
+    const sr = ctx.sampleRate;
+    const len = sr * 3;
+
+    if (synthType === 'brown' || synthType === 'rain' || synthType === 'forest' || synthType === 'city' || synthType === 'fire') {
+      const buf = ctx.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = buf.getChannelData(ch);
+        if (synthType === 'brown') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            data[i] = (last + 0.02 * w) / 1.02;
+            last = data[i];
+            data[i] *= 2.4;
+          }
+        } else if (synthType === 'rain') {
+          let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + w * 0.0555179;
+            b1 = 0.99332 * b1 + w * 0.0750759;
+            b2 = 0.96900 * b2 + w * 0.1538520;
+            b3 = 0.86650 * b3 + w * 0.3104856;
+            b4 = 0.55000 * b4 + w * 0.5329522;
+            b5 = -0.7616 * b5 - w * 0.0168980;
+            const drop = Math.random() < 0.0009 ? (Math.random() * 2 - 1) * 0.22 : 0;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.09 + drop;
+            b6 = w * 0.115926;
+          }
+        } else if (synthType === 'forest') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.04 * w) / 1.04;
+            const breeze = 0.65 + 0.35 * Math.sin((2 * Math.PI * i) / (sr * 3.5));
+            data[i] = last * 1.45 * breeze;
+          }
+        } else if (synthType === 'city') {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.07 * w) / 1.07;
+            const hum = 0.75 + 0.25 * Math.sin((2 * Math.PI * i) / (sr * 2.8));
+            data[i] = last * 1.55 * hum;
+          }
+        } else {
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const w = Math.random() * 2 - 1;
+            last = (last + 0.03 * w) / 1.03;
+            const crackle = Math.random() < 0.0004 ? (Math.random() * 2 - 1) * 0.3 : 0;
+            data[i] = last * 1.5 + crackle;
+          }
+        }
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(synthGain);
+      src.start();
+      synthNodes.push(src);
+    } else if (synthType === 'gamma40' || synthType === 'theta') {
+      const baseFreq = synthType === 'gamma40' ? 200 : 174;
+      const beatHz = synthType === 'gamma40' ? 40 : 6;
+      const merger = ctx.createChannelMerger(2);
+      const oscL = ctx.createOscillator();
+      const oscR = ctx.createOscillator();
+      oscL.type = 'sine';
+      oscR.type = 'sine';
+      oscL.frequency.value = baseFreq;
+      oscR.frequency.value = baseFreq + beatHz;
+
+      const gL = ctx.createGain();
+      const gR = ctx.createGain();
+      gL.gain.value = 0.45;
+      gR.gain.value = 0.45;
+
+      oscL.connect(gL);
+      oscR.connect(gR);
+      gL.connect(merger, 0, 0);
+      gR.connect(merger, 0, 1);
+      merger.connect(synthGain);
+
+      oscL.start();
+      oscR.start();
+      synthNodes.push(oscL, oscR, gL, gR, merger);
+    } else {
+      const notes = synthType === 'piano'
+        ? [261.63, 329.63, 392.00, 493.88, 523.25]
+        : synthType === 'symphony'
+        ? [196.00, 293.66, 392.00, 493.88, 587.33]
+        : [220.00, 261.63, 329.63, 392.00, 440.00];
+      let step = 0;
+      const playTone = () => {
+        if (!synthGain || !ctx || ctx.state === 'closed') return;
+        const freq = notes[step % notes.length];
+        step++;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.type = synthType === 'symphony' ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        env.gain.setValueAtTime(0.0001, now);
+        env.gain.linearRampToValueAtTime(0.14, now + 0.06);
+        env.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+        osc.connect(env);
+        env.connect(synthGain);
+        osc.start(now);
+        osc.stop(now + 1.85);
+      };
+      playTone();
+      synthTimer = setInterval(playTone, 1700);
+    }
+
+    streamActive = true;
+    syncMp3();
+    return true;
+  };
+
+  const upgradeWithFileIfAvailable = async (meta, token) => {
+    if (!meta.candidates) return;
+    for (const rawUrl of meta.candidates) {
+      if (token !== playToken) return;
+      const url = encodeURI(rawUrl);
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (!blob || blob.size < 64 || token !== playToken) continue;
+        const blobUrl = URL.createObjectURL(blob);
+        audio.pause();
+        audio.src = blobUrl;
+        audio.loop = loop;
+        await audio.play();
+        if (token !== playToken) {
+          audio.pause();
+          return;
+        }
+        filePlaying = true;
+        stopSynth();
+        syncMp3();
+        return;
+      } catch {}
+    }
+  };
+
+  const startPreset = type => {
+    playToken++;
+    const token = playToken;
+    fileActive = false;
+    filePlaying = false;
+    audio.pause();
+
+    const meta = trackCatalog[type];
+    if (!meta) return;
+
+    activePreset = type;
+    presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+    presetBox?.querySelector(`[data-snd="${type}"]`)?.classList.add('active-snd');
+
+    if (meta.synth) {
+      startInstantSynth(meta.synth);
+    } else {
+      syncMp3();
+    }
+
+    if (meta.candidates) {
+      upgradeWithFileIfAvailable(meta, token);
+    }
+  };
+
+  const playTrack = (i, auto = true) => {
+    if (!tracks.length) return;
+    playToken++;
+    stopSynth();
+    fileActive = true;
+    filePlaying = true;
+    activePreset = null;
+    presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+    idx = (i + tracks.length) % tracks.length;
+    audio.src = tracks[idx].url;
+    audio.loop = loop && tracks.length === 1;
+    if (mp3Seek) mp3Seek.value = '0';
+    if (mp3CurTime) mp3CurTime.textContent = '00:00';
+    if (mp3DurTime) mp3DurTime.textContent = '00:00';
+    if (auto) audio.play().catch(() => {});
+    syncMp3();
+  };
+
+  presetBox?.querySelectorAll('[data-snd]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const snd = btn.dataset.snd;
+      if (!snd) return;
+      if (activePreset === snd) {
+        playToken++;
+        stopSynth();
+        filePlaying = false;
+        audio.pause();
+        activePreset = null;
+        btn.classList.remove('active-snd');
+        syncMp3();
+      } else {
+        startPreset(snd);
+      }
+    });
+  });
+
+  mp3Btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    ensureAudioCtx();
+    const open = mp3Pop.hidden;
+    document.querySelectorAll('.pop').forEach(p => { if (p !== mp3Pop) p.hidden = true; });
+    mp3Pop.hidden = !open;
+    if (!mp3Pop.hidden) {
+      const r = mp3Btn.getBoundingClientRect();
+      const popW = Math.min(284, window.innerWidth - 16);
+      mp3Pop.style.top = (r.bottom + 8) + 'px';
+      mp3Pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - popW - 8)) + 'px';
+      syncSeekUI();
+    }
+  }, { capture: true });
+
+  mp3Pick?.addEventListener('click', () => mp3In?.click());
+  mp3In?.addEventListener('change', () => {
+    const files = [...(mp3In.files || [])];
+    if (!files.length) return;
+    tracks.forEach(t => URL.revokeObjectURL(t.url));
+    tracks = files.map(f => ({ name: f.name, url: URL.createObjectURL(f) }));
+    playTrack(0, true);
+    mp3In.value = '';
+  });
+  mp3Play?.addEventListener('click', () => {
+    if (activePreset) {
+      const isCurrentlyOn = streamActive || (filePlaying && !audio.paused);
+      if (isCurrentlyOn) {
+        playToken++;
+        stopSynth();
+        filePlaying = false;
+        audio.pause();
+        activePreset = null;
+        presetBox?.querySelectorAll('[data-snd]').forEach(b => b.classList.remove('active-snd'));
+      } else {
+        startPreset(activePreset);
+      }
+      syncMp3();
+      return;
+    }
+    if (!tracks.length) return;
+    fileActive = true;
+    filePlaying = true;
+    audio.paused ? audio.play().catch(() => {}) : audio.pause();
+    syncMp3();
+  });
+  mp3Next?.addEventListener('click', () => playTrack(idx + 1, true));
+  mp3Rew?.addEventListener('click', () => {
+    if (audio.paused) return;
+    seekTo((audio.currentTime || 0) - 10);
+  });
+  mp3Fwd?.addEventListener('click', () => {
+    if (audio.paused) return;
+    seekTo((audio.currentTime || 0) + 10);
+  });
+  mp3Seek?.addEventListener('pointerdown', () => { seeking = true; });
+  mp3Seek?.addEventListener('input', () => {
+    if (mp3CurTime && mp3Seek) mp3CurTime.textContent = fmtTime(parseFloat(mp3Seek.value));
+  });
+  mp3Seek?.addEventListener('change', () => {
+    if (mp3Seek) seekTo(parseFloat(mp3Seek.value));
+    seeking = false;
+  });
+  window.addEventListener('pointerup', () => { seeking = false; });
+
+  mp3Loop?.addEventListener('click', () => {
+    loop = !loop;
+    audio.loop = loop;
+    syncMp3();
+  });
+  mp3Vol?.addEventListener('input', () => {
+    const v = parseFloat(mp3Vol.value) || 0;
+    audio.volume = v;
+    if (synthGain) synthGain.gain.value = v * 0.35;
+    try { localStorage.setItem('on-mp3-vol', String(v)); } catch {}
+  });
+  audio.addEventListener('loadedmetadata', syncSeekUI);
+  audio.addEventListener('durationchange', syncSeekUI);
+  audio.addEventListener('timeupdate', syncSeekUI);
+  audio.addEventListener('play', syncMp3);
+  audio.addEventListener('pause', syncMp3);
+  audio.addEventListener('ended', () => {
+    if (fileActive && tracks.length > 1 && (loop || idx + 1 < tracks.length)) playTrack(idx + 1, true);
+    else { filePlaying = false; syncMp3(); }
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!mp3Pop.hidden && !mp3Pop.contains(e.target) && !mp3Btn.contains(e.target)) mp3Pop.hidden = true;
+  });
+
+  const spenSel = document.getElementById('spenAction');
+  const spenBadge = document.getElementById('spenTestBadge');
+
+  const getSpenAct = () => localStorage.getItem('on-spen-action') || appNs.settings?.spenAction || 'eraser-hold';
+  const setSpenAct = val => {
+    try { localStorage.setItem('on-spen-action', val); } catch {}
+    if (appNs.settings) { appNs.settings.spenAction = val; appNs.saveSettings?.(); }
+  };
+  if (spenSel) spenSel.value = getSpenAct();
+
+  document.getElementById('openSettings')?.addEventListener('click', () => {
+    if (spenSel) setTimeout(() => { spenSel.value = getSpenAct(); }, 10);
+  });
+  spenSel?.addEventListener('change', () => {
+    setSpenAct(spenSel.value);
+    appNs.app?.toast?.('S Pen tuş görevi kaydedildi');
+  });
+  document.getElementById('setForm')?.addEventListener('submit', () => {
+    if (spenSel) setSpenAct(spenSel.value);
+  });
+
+  const activeTool = () => document.querySelector('#toolBtns [data-tool].on')?.dataset.tool || 'pen';
+  const switchTool = t => {
+    if (!t || activeTool() === t) return;
+    const btn = document.querySelector(`#toolBtns [data-tool="${t}"]`);
+    if (!btn) return;
+    btn.click();
+    const pop = document.getElementById('toolPop');
+    if (pop) pop.hidden = true;
+  };
+
+  let barrelDown = false, prevTool = null, lastToggleAt = 0;
+
+  const handleBarrelDown = (source = '') => {
+    if (spenBadge) {
+      spenBadge.classList.add('ok');
+      spenBadge.textContent = `Algılandı! (${source}) → Seçili görev aktif`;
+    }
+    const act = getSpenAct();
+    if (act === 'none') return;
+
+    if (act === 'eraser-hold' || act === 'lasso-hold') {
+      const target = act === 'eraser-hold' ? 'eraser' : 'lasso';
+      const cur = activeTool();
+      if (cur !== target) { prevTool = cur; switchTool(target); }
+    } else {
+      const now = Date.now();
+      if (now - lastToggleAt < 250) return;
+      lastToggleAt = now;
+      if (act === 'eraser-toggle') {
+        switchTool(activeTool() === 'eraser' ? 'pen' : 'eraser');
+      } else if (act === 'highlighter-toggle') {
+        switchTool(activeTool() === 'highlighter' ? 'pen' : 'highlighter');
+      } else if (act === 'undo') {
+        document.getElementById('undo')?.click();
+        appNs.app?.toast?.('Geri alındı (S Pen)');
+      } else if (act === 'ai') {
+        document.getElementById('aiOpen')?.click();
+      }
+    }
+  };
+
+  const handleBarrelUp = () => {
+    if (prevTool) { switchTool(prevTool); prevTool = null; }
+  };
+
+  const isSpenSidePressed = e => {
+    if (e.pointerType !== 'pen') return false;
+    return (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0 || e.button === 5 || e.button === 2;
+  };
+
+  window.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'pen') return;
+    if (isSpenSidePressed(e) && !barrelDown) {
+      barrelDown = true;
+      handleBarrelDown(`down b:${e.button} bs:${e.buttons}`);
+    }
+  }, { capture: true });
+
+  window.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'pen') return;
+    const pressed = (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0;
+    if (pressed && !barrelDown) {
+      barrelDown = true;
+      handleBarrelDown(`hover/move bs:${e.buttons}`);
+    } else if (!pressed && barrelDown) {
+      barrelDown = false;
+      handleBarrelUp();
+    }
+  }, { capture: true });
+
+  const onPenUp = e => {
+    if (e.pointerType !== 'pen') return;
+    const stillPressed = (e.buttons & 32) !== 0 || (e.buttons & 2) !== 0;
+    if (barrelDown && !stillPressed) {
+      barrelDown = false;
+      handleBarrelUp();
+    }
+  };
+  window.addEventListener('pointerup', onPenUp, { capture: true });
+  window.addEventListener('pointercancel', onPenUp, { capture: true });
+
+  window.addEventListener('contextmenu', e => {
+    if (isTextEditable(e.target)) return;
+    if (getSpenAct() === 'none') return;
+    e.preventDefault();
+    if (!barrelDown) {
+      handleBarrelDown('contextmenu');
+    }
+  }, { capture: true });
+});
 </script>
 </body>
 </html>
